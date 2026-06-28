@@ -40,6 +40,18 @@ Prefer constructor-injected interfaces for components expected to change:
 
 Avoid introducing a dependency injection framework.
 
+## Testing Boundary
+
+Repo-wide C++ unit-test policy is documented in
+[`../../../docs/testing.md`](../../../docs/testing.md).
+
+Sensor test targets should link the smallest sensor library under test, such as
+`aegis_sensor_win32_core`, rather than the executable entry point.
+
+Default unit tests should remain deterministic and should not require
+administrator privileges, live ETW sessions, backend access, or network access.
+Real ETW integration tests must stay separate from normal unit-test targets.
+
 ## Review Rules
 
 Changes should be reviewed for:

@@ -32,6 +32,6 @@ Preset output is written to `sensor/build/<preset-name>`.
 
 ## Dependency Policy
 
-Normal configure and build steps must not access the network. Vendored
-dependencies, when explicitly justified, belong under `thirdparty/<dep-name>`
-with license and version metadata.
+Normal configure and build steps must not access the network. Repo-wide testing
+dependency policy, including GoogleTest/GoogleMock v1.17, is documented in
+[`../../docs/testing.md`](../../docs/testing.md).
