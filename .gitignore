@@ -1,0 +1,8 @@
+*.so
+*.o
+*.obj
+*.dll
+*.bin
+*.lib
+/sensor/build/
+/sensor/CMakeUserPresets.json
