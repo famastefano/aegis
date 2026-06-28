@@ -1,0 +1,4 @@
+interface:
+  display_name: "Aegis Sensor Build"
+  short_description: "Build and run the Aegis sensor"
+  default_prompt: "Use $aegis-sensor-build to configure, build, test, and run the Windows sensor."

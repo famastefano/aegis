@@ -6,3 +6,7 @@ project(
     DESCRIPTION "Aegis endpoint telemetry sensor"
     LANGUAGES CXX
 )
+
+if(WIN32 AND MSVC)
+    add_subdirectory(win32)
+endif()
