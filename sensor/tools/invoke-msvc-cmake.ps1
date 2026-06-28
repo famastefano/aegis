@@ -10,6 +10,8 @@ param(
     [ValidateSet('x64', 'x86', 'arm64')]
     [string] $Arch = 'x64',
 
+    [string] $RunArgs = '',
+
     [switch] $Fresh
 )
 
@@ -108,6 +110,67 @@ function ConvertTo-CmdArgument {
     return '"' + ($Value -replace '"', '\"') + '"'
 }
 
+function Split-RunArguments {
+    param([string] $CommandLine)
+
+    if ([string]::IsNullOrWhiteSpace($CommandLine)) {
+        return @()
+    }
+
+    $arguments = [System.Collections.Generic.List[string]]::new()
+    $current = [System.Text.StringBuilder]::new()
+    $inSingleQuote = $false
+    $inDoubleQuote = $false
+    $escapeNext = $false
+
+    foreach ($character in $CommandLine.ToCharArray()) {
+        if ($escapeNext) {
+            [void] $current.Append($character)
+            $escapeNext = $false
+            continue
+        }
+
+        if ($character -eq '`') {
+            $escapeNext = $true
+            continue
+        }
+
+        if ($character -eq "'" -and -not $inDoubleQuote) {
+            $inSingleQuote = -not $inSingleQuote
+            continue
+        }
+
+        if ($character -eq '"' -and -not $inSingleQuote) {
+            $inDoubleQuote = -not $inDoubleQuote
+            continue
+        }
+
+        if ([char]::IsWhiteSpace($character) -and -not $inSingleQuote -and -not $inDoubleQuote) {
+            if ($current.Length -gt 0) {
+                $arguments.Add($current.ToString())
+                [void] $current.Clear()
+            }
+            continue
+        }
+
+        [void] $current.Append($character)
+    }
+
+    if ($escapeNext) {
+        [void] $current.Append('`')
+    }
+
+    if ($inSingleQuote -or $inDoubleQuote) {
+        throw 'Run arguments contain an unterminated quote.'
+    }
+
+    if ($current.Length -gt 0) {
+        $arguments.Add($current.ToString())
+    }
+
+    return $arguments.ToArray()
+}
+
 function Invoke-MsvcCommand {
     param(
         [string] $SensorRoot,
@@ -184,7 +247,7 @@ function Invoke-Run {
         throw "Executable was not found at '$exe'. Build the '$Preset' preset first."
     }
 
-    Invoke-MsvcCommand -SensorRoot $sensorRoot -Arguments @($exe)
+    Invoke-MsvcCommand -SensorRoot $sensorRoot -Arguments (@($exe) + (Split-RunArguments -CommandLine $RunArgs))
 }
 
 switch ($Action) {

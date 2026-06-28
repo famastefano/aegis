@@ -1,5 +1,13 @@
 {
   "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "sensorRunArgs",
+      "type": "promptString",
+      "description": "Arguments for aegis_sensor_win32",
+      "default": "--duration-seconds 1"
+    }
+  ],
   "tasks": [
     {
       "label": "sensor: configure debug",
@@ -100,7 +108,9 @@
         "-Action",
         "run",
         "-Preset",
-        "msvc-debug"
+        "msvc-debug",
+        "-RunArgs",
+        "${input:sensorRunArgs}"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
@@ -224,7 +234,9 @@
         "-Action",
         "run",
         "-Preset",
-        "msvc-release"
+        "msvc-release",
+        "-RunArgs",
+        "${input:sensorRunArgs}"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
