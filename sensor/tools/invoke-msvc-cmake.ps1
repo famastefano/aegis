@@ -231,6 +231,23 @@ function Invoke-Configure {
 
     $arguments += @('--preset', $Preset)
     Invoke-MsvcCommand -SensorRoot $sensorRoot -Arguments $arguments
+    Copy-CompileCommands -SensorRoot $sensorRoot -Preset $Preset
+}
+
+function Copy-CompileCommands {
+    param(
+        [string] $SensorRoot,
+        [string] $Preset
+    )
+
+    $source = Join-Path $SensorRoot "build\$Preset\compile_commands.json"
+    $destination = Join-Path $SensorRoot 'compile_commands.json'
+
+    if (-not (Test-Path -LiteralPath $source)) {
+        throw "CMake did not generate '$source'. Check CMAKE_EXPORT_COMPILE_COMMANDS for preset '$Preset'."
+    }
+
+    Copy-Item -LiteralPath $source -Destination $destination -Force
 }
 
 function Invoke-Build {
