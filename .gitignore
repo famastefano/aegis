@@ -5,5 +5,5 @@
 *.bin
 *.lib
 compile_commands.json
-/sensor/build/
-/sensor/CMakeUserPresets.json
+build/
+.vs/
