@@ -34,13 +34,13 @@ void StdoutEventSink::on_event(const EventRecordSnapshot& event) noexcept
 {
     try {
         std::lock_guard lock{output_mutex_};
-        (*output_) << "provider=" << format_guid(event.provider_id)
-                   << " pid=" << event.process_id
-                   << " tid=" << event.thread_id
-                   << " level=" << static_cast<unsigned int>(event.level)
-                   << " opcode=" << static_cast<unsigned int>(event.opcode)
-                   << " event_id=" << event.event_id
-                   << " version=" << static_cast<unsigned int>(event.version)
+        (*output_) << "provider=" << format_guid(event.ev.EventHeader.ProviderId)
+                   << " pid=" << event.ev.EventHeader.ProcessId
+                   << " tid=" << event.ev.EventHeader.ThreadId
+                   << " level=" << static_cast<unsigned int>(event.ev.EventHeader.EventDescriptor.Level)
+                   << " opcode=" << static_cast<unsigned int>(event.ev.EventHeader.EventDescriptor.Opcode)
+                   << " event_id=" << event.ev.EventHeader.EventDescriptor.Id
+                   << " version=" << static_cast<unsigned int>(event.ev.EventHeader.EventDescriptor.Version)
                    << '\n';
     } catch (...) {
     }
