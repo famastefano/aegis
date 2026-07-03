@@ -32,7 +32,7 @@ StdoutEventSink::StdoutEventSink(std::ostream& output) noexcept
 
 void StdoutEventSink::on_event(const EventRecordSnapshot& event) noexcept
 {
-    try {
+    /*try {
         std::lock_guard lock{output_mutex_};
         (*output_) << "provider=" << format_guid(event.ev.EventHeader.ProviderId)
                    << " pid=" << event.ev.EventHeader.ProcessId
@@ -43,7 +43,7 @@ void StdoutEventSink::on_event(const EventRecordSnapshot& event) noexcept
                    << " version=" << static_cast<unsigned int>(event.ev.EventHeader.EventDescriptor.Version)
                    << '\n';
     } catch (...) {
-    }
+    }*/
 }
 
 } // namespace aegis::sensor::win32::etw

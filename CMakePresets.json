@@ -20,7 +20,8 @@
         "CMAKE_CXX_STANDARD": "23",
         "CMAKE_CXX_STANDARD_REQUIRED": true,
         "CMAKE_CXX_EXTENSIONS": false,
-        "CMAKE_EXPORT_COMPILE_COMMANDS": true
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+        "BUILD_TESTING": false
       },
       "condition": {
         "type": "equals",
@@ -34,9 +35,19 @@
         "msvc-base"
       ],
       "displayName": "MSVC Debug",
-      "description": "Debug build using MSVC from an initialized Developer shell.",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "msvc-test",
+      "inherits": [
+        "msvc-base"
+      ],
+      "displayName": "MSVC Testing",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTING": true
       }
     },
     {
@@ -44,8 +55,6 @@
       "inherits": [
         "msvc-base"
       ],
-      "displayName": "MSVC Release",
-      "description": "Release build using MSVC from an initialized Developer shell.",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
@@ -54,28 +63,21 @@
   "buildPresets": [
     {
       "name": "msvc-debug",
-      "displayName": "Build MSVC Debug",
       "configurePreset": "msvc-debug"
     },
     {
+      "name": "msvc-test",
+      "configurePreset": "msvc-test"
+    },
+    {
       "name": "msvc-release",
-      "displayName": "Build MSVC Release",
       "configurePreset": "msvc-release"
     }
   ],
   "testPresets": [
     {
-      "name": "msvc-debug",
-      "displayName": "Test MSVC Debug",
-      "configurePreset": "msvc-debug",
-      "output": {
-        "outputOnFailure": true
-      }
-    },
-    {
-      "name": "msvc-release",
-      "displayName": "Test MSVC Release",
-      "configurePreset": "msvc-release",
+      "name": "msvc-test",
+      "configurePreset": "msvc-test",
       "output": {
         "outputOnFailure": true
       }
