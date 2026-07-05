@@ -64,8 +64,6 @@ else()
 
         # Hardening
         -Walloca
-        -Wunsafe-buffer-usage
-        -fsafe-buffer-usage-suggestions
 
         # Performance
         -Wnrvo
