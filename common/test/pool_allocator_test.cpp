@@ -42,9 +42,8 @@ template <typename T> class PoolAllocatorTest : public ::testing::Test
 {
 };
 
-using PoolAllocatorTestTypes =
-    ::testing::Types<std::byte, std::uint16_t, std::uint32_t, std::uint64_t, PointerSized, LargerThanPointer,
-                     Align16, Align64>;
+using PoolAllocatorTestTypes = ::testing::Types<std::byte, std::uint16_t, std::uint32_t, std::uint64_t, PointerSized,
+                                                LargerThanPointer, Align16, Align64>;
 
 struct PoolAllocatorTypeNames
 {
@@ -78,44 +77,43 @@ TYPED_TEST_SUITE(PoolAllocatorTest, PoolAllocatorTestTypes, PoolAllocatorTypeNam
 
 template <typename T> std::vector<T *> acquire_slots(PoolAllocator<T> &allocator, std::size_t count)
 {
-    std::vector<T *> slots;
-    slots.reserve(count);
+    std::vector<T *> slots(count);
 
     for (std::size_t i = 0; i < count; ++i)
-        slots.push_back(static_cast<T *>(allocator.acquire()));
+        slots[i] = allocator.acquire();
 
     return slots;
 }
 
-template <typename T> void release_slots(PoolAllocator<T> &allocator, const std::vector<T *> &slots)
+template <typename T> void release_slots(PoolAllocator<T> &allocator, std::vector<T *> const &slots)
 {
     for (auto *slot : slots)
     {
-        if (slot != nullptr)
+        if (slot)
             allocator.release(slot);
     }
 }
 
-template <typename T> void release_slots_reversed(PoolAllocator<T> &allocator, const std::vector<T *> &slots)
+template <typename T> void release_slots_reversed(PoolAllocator<T> &allocator, std::vector<T *> const &slots)
 {
     for (auto slot = slots.rbegin(); slot != slots.rend(); ++slot)
     {
-        if (*slot != nullptr)
+        if (*slot)
             allocator.release(*slot);
     }
 }
 
-template <typename T> ::testing::AssertionResult is_aligned_for_type(T *slot)
+template <typename T>::testing::AssertionResult is_aligned_for_type(T *slot)
 {
-    const auto address = reinterpret_cast<std::uintptr_t>(slot);
+    auto const address = reinterpret_cast<std::uintptr_t>(slot);
     if (address % alignof(T) == 0)
         return ::testing::AssertionSuccess();
 
-    return ::testing::AssertionFailure() << "address " << static_cast<const void *>(slot)
+    return ::testing::AssertionFailure() << "address " << static_cast<void const *>(slot)
                                          << " is not aligned to alignof(T)=" << alignof(T);
 }
 
-template <typename T> void expect_aligned_non_null_unique(const std::vector<T *> &slots)
+template <typename T> void expect_aligned_non_null_unique(std::vector<T *> const &slots)
 {
     std::unordered_set<T *> unique_slots;
     unique_slots.reserve(slots.size());
@@ -123,7 +121,7 @@ template <typename T> void expect_aligned_non_null_unique(const std::vector<T *>
     for (std::size_t i = 0; i < slots.size(); ++i)
     {
         auto *slot = slots[i];
-        if (slot == nullptr)
+        if (!slot)
         {
             ADD_FAILURE() << "slot " << i << " is null";
             continue;
@@ -135,22 +133,20 @@ template <typename T> void expect_aligned_non_null_unique(const std::vector<T *>
 }
 
 template <typename T>
-void expect_same_pointer_set(const std::vector<T *> &expected_slots, const std::vector<T *> &actual_slots)
+void expect_same_pointer_set(std::vector<T *> const &expected_slots, std::vector<T *> const &actual_slots)
 {
     EXPECT_EQ(expected_slots.size(), actual_slots.size());
 
-    const std::unordered_set<T *> expected_set(expected_slots.begin(), expected_slots.end());
-    const std::unordered_set<T *> actual_set(actual_slots.begin(), actual_slots.end());
+    std::unordered_set<T *> const expected_set(expected_slots.begin(), expected_slots.end());
+    std::unordered_set<T *> const actual_set(actual_slots.begin(), actual_slots.end());
 
     EXPECT_EQ(expected_slots.size(), expected_set.size()) << "expected slot list contains duplicates";
     EXPECT_EQ(actual_slots.size(), actual_set.size()) << "actual slot list contains duplicates";
     EXPECT_EQ(expected_set, actual_set);
 }
 
-template <typename T> void expect_allocator_valid(const PoolAllocator<T> &allocator)
-{
-    EXPECT_TRUE(allocator.debug_validate());
-}
+template <typename T> void expect_allocator_valid(PoolAllocator<T> const &allocator)
+{ EXPECT_TRUE(allocator.debug_validate()); }
 
 enum class OracleOperation
 {
@@ -160,13 +156,13 @@ enum class OracleOperation
 };
 
 template <typename T>
-void expect_oracle_state(std::size_t capacity, const std::unordered_set<T *> &free_slots,
-                         const std::unordered_set<T *> &live_slots, const std::vector<T *> &live_order)
+void expect_oracle_state(std::size_t capacity, std::unordered_set<T *> const &free_slots,
+                         std::unordered_set<T *> const &live_slots, std::vector<T *> const &live_order)
 {
     EXPECT_EQ(capacity, free_slots.size() + live_slots.size());
     EXPECT_EQ(live_slots.size(), live_order.size());
 
-    const std::unordered_set<T *> live_order_set(live_order.begin(), live_order.end());
+    std::unordered_set<T *> const live_order_set(live_order.begin(), live_order.end());
     EXPECT_EQ(live_slots.size(), live_order_set.size()) << "live order contains duplicate pointers";
     EXPECT_EQ(live_slots, live_order_set);
 
@@ -209,9 +205,9 @@ void run_oracle_sequence(std::uint32_t capacity, std::initializer_list<OracleOpe
         {
             ASSERT_FALSE(live_order.empty());
 
-            const auto slot_index =
+            auto const slot_index =
                 operation == OracleOperation::release_oldest ? std::size_t{0} : live_order.size() - 1U;
-            auto      *slot       = live_order[slot_index];
+            auto *slot = live_order[slot_index];
             live_order.erase(live_order.begin() + static_cast<std::ptrdiff_t>(slot_index));
 
             allocator.release(slot);
@@ -244,7 +240,7 @@ template <typename T> void run_random_oracle_sequence()
 
     for (std::uint32_t step = 0; step < steps; ++step)
     {
-        const bool should_acquire =
+        bool const should_acquire =
             live_slots.empty() || (!free_slots.empty() && std::uniform_int_distribution<int>{0, 1}(random_engine) == 0);
 
         if (should_acquire)
@@ -260,7 +256,7 @@ template <typename T> void run_random_oracle_sequence()
         }
         else
         {
-            const auto slot_index =
+            auto const slot_index =
                 std::uniform_int_distribution<std::size_t>{0, live_order.size() - 1U}(random_engine);
             auto *slot = live_order[slot_index];
             live_order.erase(live_order.begin() + static_cast<std::ptrdiff_t>(slot_index));
@@ -277,10 +273,10 @@ template <typename T> void run_random_oracle_sequence()
 
 TYPED_TEST(PoolAllocatorTest, AcquireReturnsAlignedNonNullUniqueLiveSlots)
 {
-    constexpr std::uint32_t slots_per_arena = 8;
+    constexpr std::uint32_t  slots_per_arena = 8;
     PoolAllocator<TypeParam> allocator(slots_per_arena, 1);
 
-    const auto slots = acquire_slots(allocator, 5);
+    auto const slots = acquire_slots(allocator, 5);
 
     expect_aligned_non_null_unique(slots);
     expect_allocator_valid(allocator);
@@ -288,10 +284,10 @@ TYPED_TEST(PoolAllocatorTest, AcquireReturnsAlignedNonNullUniqueLiveSlots)
 
 TYPED_TEST(PoolAllocatorTest, CanAcquireEntirePreallocatedArena)
 {
-    constexpr std::uint32_t slots_per_arena = 8;
+    constexpr std::uint32_t  slots_per_arena = 8;
     PoolAllocator<TypeParam> allocator(slots_per_arena, 1);
 
-    const auto slots = acquire_slots(allocator, slots_per_arena);
+    auto const slots = acquire_slots(allocator, slots_per_arena);
 
     expect_aligned_non_null_unique(slots);
     expect_allocator_valid(allocator);
@@ -299,7 +295,7 @@ TYPED_TEST(PoolAllocatorTest, CanAcquireEntirePreallocatedArena)
 
 TYPED_TEST(PoolAllocatorTest, AcquireGrowsAfterEntireArenaIsExhausted)
 {
-    constexpr std::uint32_t slots_per_arena = 4;
+    constexpr std::uint32_t  slots_per_arena = 4;
     PoolAllocator<TypeParam> allocator(slots_per_arena, 1);
 
     auto slots = acquire_slots(allocator, slots_per_arena);
@@ -309,23 +305,23 @@ TYPED_TEST(PoolAllocatorTest, AcquireGrowsAfterEntireArenaIsExhausted)
     ASSERT_NE(nullptr, extra_slot);
     EXPECT_TRUE(is_aligned_for_type(extra_slot));
 
-    const std::unordered_set<TypeParam *> live_slots(slots.begin(), slots.end());
+    std::unordered_set<TypeParam *> const live_slots(slots.begin(), slots.end());
     EXPECT_FALSE(live_slots.contains(extra_slot));
     expect_allocator_valid(allocator);
 }
 
 TYPED_TEST(PoolAllocatorTest, ReleaseEntireArenaThenReacquireReusesSamePointers)
 {
-    constexpr std::uint32_t slots_per_arena = 8;
+    constexpr std::uint32_t  slots_per_arena = 8;
     PoolAllocator<TypeParam> allocator(slots_per_arena, 1);
 
-    const auto original_slots = acquire_slots(allocator, slots_per_arena);
+    auto const original_slots = acquire_slots(allocator, slots_per_arena);
     expect_aligned_non_null_unique(original_slots);
 
     release_slots(allocator, original_slots);
     expect_allocator_valid(allocator);
 
-    const auto reacquired_slots = acquire_slots(allocator, slots_per_arena);
+    auto const reacquired_slots = acquire_slots(allocator, slots_per_arena);
     expect_aligned_non_null_unique(reacquired_slots);
     expect_same_pointer_set(original_slots, reacquired_slots);
     expect_allocator_valid(allocator);
@@ -333,16 +329,16 @@ TYPED_TEST(PoolAllocatorTest, ReleaseEntireArenaThenReacquireReusesSamePointers)
 
 TYPED_TEST(PoolAllocatorTest, AcquireReleaseReusesArenaWhenNoArenasWerePreallocated)
 {
-    constexpr std::uint32_t slots_per_arena = 8;
+    constexpr std::uint32_t  slots_per_arena = 8;
     PoolAllocator<TypeParam> allocator(slots_per_arena, 0);
 
-    const auto original_slots = acquire_slots(allocator, slots_per_arena);
+    auto const original_slots = acquire_slots(allocator, slots_per_arena);
     expect_aligned_non_null_unique(original_slots);
 
     release_slots(allocator, original_slots);
     expect_allocator_valid(allocator);
 
-    const auto reacquired_slots = acquire_slots(allocator, slots_per_arena);
+    auto const reacquired_slots = acquire_slots(allocator, slots_per_arena);
     expect_aligned_non_null_unique(reacquired_slots);
     expect_same_pointer_set(original_slots, reacquired_slots);
     expect_allocator_valid(allocator);
@@ -350,18 +346,18 @@ TYPED_TEST(PoolAllocatorTest, AcquireReleaseReusesArenaWhenNoArenasWerePrealloca
 
 TYPED_TEST(PoolAllocatorTest, CanAcquireAndReuseAcrossMultiplePreallocatedArenas)
 {
-    constexpr std::uint32_t slots_per_arena          = 3;
-    constexpr std::uint32_t preallocated_arena_count = 3;
-    constexpr std::uint32_t total_slots              = slots_per_arena * preallocated_arena_count;
+    constexpr std::uint32_t  slots_per_arena          = 3;
+    constexpr std::uint32_t  preallocated_arena_count = 3;
+    constexpr std::uint32_t  total_slots              = slots_per_arena * preallocated_arena_count;
     PoolAllocator<TypeParam> allocator(slots_per_arena, preallocated_arena_count);
 
-    const auto original_slots = acquire_slots(allocator, total_slots);
+    auto const original_slots = acquire_slots(allocator, total_slots);
     expect_aligned_non_null_unique(original_slots);
 
     release_slots(allocator, original_slots);
     expect_allocator_valid(allocator);
 
-    const auto reacquired_slots = acquire_slots(allocator, total_slots);
+    auto const reacquired_slots = acquire_slots(allocator, total_slots);
     expect_aligned_non_null_unique(reacquired_slots);
     expect_same_pointer_set(original_slots, reacquired_slots);
     expect_allocator_valid(allocator);
@@ -369,8 +365,8 @@ TYPED_TEST(PoolAllocatorTest, CanAcquireAndReuseAcrossMultiplePreallocatedArenas
 
 TYPED_TEST(PoolAllocatorTest, RepeatedFullArenaAcquireReleaseCyclesRemainStable)
 {
-    constexpr std::uint32_t slots_per_arena = 8;
-    constexpr std::uint32_t cycles          = 5;
+    constexpr std::uint32_t  slots_per_arena = 8;
+    constexpr std::uint32_t  cycles          = 5;
     PoolAllocator<TypeParam> allocator(slots_per_arena, 1);
 
     std::vector<TypeParam *> baseline_slots;
@@ -396,17 +392,17 @@ TYPED_TEST(PoolAllocatorTest, RepeatedFullArenaAcquireReleaseCyclesRemainStable)
 
 TYPED_TEST(PoolAllocatorTest, ReleaseFirstMiddleAndLastSlotsThenReacquireThem)
 {
-    constexpr std::uint32_t slots_per_arena = 7;
+    constexpr std::uint32_t  slots_per_arena = 7;
     PoolAllocator<TypeParam> allocator(slots_per_arena, 1);
 
-    const auto slots = acquire_slots(allocator, slots_per_arena);
+    auto const slots = acquire_slots(allocator, slots_per_arena);
     expect_aligned_non_null_unique(slots);
 
-    const std::vector<TypeParam *> released_slots{slots.front(), slots[slots.size() / 2], slots.back()};
+    std::vector<TypeParam *> const released_slots{slots.front(), slots[slots.size() / 2], slots.back()};
     release_slots(allocator, released_slots);
     expect_allocator_valid(allocator);
 
-    const auto reacquired_slots = acquire_slots(allocator, released_slots.size());
+    auto const reacquired_slots = acquire_slots(allocator, released_slots.size());
     expect_aligned_non_null_unique(reacquired_slots);
     expect_same_pointer_set(released_slots, reacquired_slots);
     expect_allocator_valid(allocator);
@@ -414,17 +410,17 @@ TYPED_TEST(PoolAllocatorTest, ReleaseFirstMiddleAndLastSlotsThenReacquireThem)
 
 TYPED_TEST(PoolAllocatorTest, MultipleReleasedSlotsAreReusedWithoutLiveDuplication)
 {
-    constexpr std::uint32_t slots_per_arena = 8;
+    constexpr std::uint32_t  slots_per_arena = 8;
     PoolAllocator<TypeParam> allocator(slots_per_arena, 1);
 
-    const auto slots = acquire_slots(allocator, slots_per_arena);
+    auto const slots = acquire_slots(allocator, slots_per_arena);
     expect_aligned_non_null_unique(slots);
 
-    const std::vector<TypeParam *> released_slots{slots[6], slots[1], slots[4]};
+    std::vector<TypeParam *> const released_slots{slots[6], slots[1], slots[4]};
     release_slots(allocator, released_slots);
     expect_allocator_valid(allocator);
 
-    const auto reacquired_slots = acquire_slots(allocator, released_slots.size());
+    auto const reacquired_slots = acquire_slots(allocator, released_slots.size());
     expect_aligned_non_null_unique(reacquired_slots);
     expect_same_pointer_set(released_slots, reacquired_slots);
 
@@ -443,10 +439,10 @@ TYPED_TEST(PoolAllocatorTest, MultipleReleasedSlotsAreReusedWithoutLiveDuplicati
 
 TYPED_TEST(PoolAllocatorTest, DoubleReleaseDoesNotCorruptAllocator)
 {
-    constexpr std::uint32_t slots_per_arena = 8;
+    constexpr std::uint32_t  slots_per_arena = 8;
     PoolAllocator<TypeParam> allocator(slots_per_arena, 1);
 
-    const auto slots = acquire_slots(allocator, slots_per_arena);
+    auto const slots = acquire_slots(allocator, slots_per_arena);
     expect_aligned_non_null_unique(slots);
 
     allocator.release(slots[1]);
@@ -454,8 +450,8 @@ TYPED_TEST(PoolAllocatorTest, DoubleReleaseDoesNotCorruptAllocator)
     allocator.release(slots[5]);
     expect_allocator_valid(allocator);
 
-    const std::vector<TypeParam *> expected_reused_slots{slots[1], slots[5]};
-    const auto                     reacquired_slots = acquire_slots(allocator, expected_reused_slots.size());
+    std::vector<TypeParam *> const expected_reused_slots{slots[1], slots[5]};
+    auto const                     reacquired_slots = acquire_slots(allocator, expected_reused_slots.size());
     expect_aligned_non_null_unique(reacquired_slots);
     expect_same_pointer_set(expected_reused_slots, reacquired_slots);
 
@@ -474,7 +470,7 @@ TYPED_TEST(PoolAllocatorTest, DoubleReleaseDoesNotCorruptAllocator)
 
 TYPED_TEST(PoolAllocatorTest, NullAndForeignReleaseDoNotCorruptAllocator)
 {
-    constexpr std::uint32_t slots_per_arena = 8;
+    constexpr std::uint32_t  slots_per_arena = 8;
     PoolAllocator<TypeParam> allocator(slots_per_arena, 1);
     TypeParam                foreign_slot{};
 
@@ -482,7 +478,7 @@ TYPED_TEST(PoolAllocatorTest, NullAndForeignReleaseDoNotCorruptAllocator)
     allocator.release(&foreign_slot);
     expect_allocator_valid(allocator);
 
-    const auto slots = acquire_slots(allocator, slots_per_arena);
+    auto const slots = acquire_slots(allocator, slots_per_arena);
 
     expect_aligned_non_null_unique(slots);
     expect_allocator_valid(allocator);
@@ -493,8 +489,8 @@ TYPED_TEST(PoolAllocatorTest, SmallStateOracleSequencesPreserveInvariants)
     using Op = OracleOperation;
 
     run_oracle_sequence<TypeParam>(1, {Op::acquire, Op::release_newest, Op::acquire, Op::release_oldest});
-    run_oracle_sequence<TypeParam>(2, {Op::acquire, Op::acquire, Op::release_oldest, Op::acquire,
-                                       Op::release_newest, Op::release_newest, Op::acquire, Op::acquire});
+    run_oracle_sequence<TypeParam>(2, {Op::acquire, Op::acquire, Op::release_oldest, Op::acquire, Op::release_newest,
+                                       Op::release_newest, Op::acquire, Op::acquire});
     run_oracle_sequence<TypeParam>(3, {Op::acquire, Op::acquire, Op::acquire, Op::release_oldest, Op::acquire,
                                        Op::release_newest, Op::release_oldest, Op::acquire});
     run_oracle_sequence<TypeParam>(4, {Op::acquire, Op::acquire, Op::acquire, Op::acquire, Op::release_oldest,
@@ -502,7 +498,5 @@ TYPED_TEST(PoolAllocatorTest, SmallStateOracleSequencesPreserveInvariants)
 }
 
 TYPED_TEST(PoolAllocatorTest, FixedSeedRandomOracleSequencePreservesInvariants)
-{
-    run_random_oracle_sequence<TypeParam>();
-}
+{ run_random_oracle_sequence<TypeParam>(); }
 } // namespace
