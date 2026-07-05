@@ -21,7 +21,8 @@
         "CMAKE_CXX_STANDARD_REQUIRED": true,
         "CMAKE_CXX_EXTENSIONS": false,
         "CMAKE_EXPORT_COMPILE_COMMANDS": true,
-        "BUILD_TESTING": false
+        "BUILD_TESTING": false,
+        "AEGIS_STRESS_TEST": false
       },
       "condition": {
         "type": "equals",
@@ -46,6 +47,17 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "BUILD_TESTING": true
+      }
+    },
+    {
+      "name": "msvc-stress-test",
+      "inherits": [
+        "msvc-base"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTING": true,
+        "AEGIS_STRESS_TEST": true
       }
     },
     {
@@ -97,6 +109,17 @@
       }
     },
     {
+      "name": "linux-stress-test",
+      "inherits": [
+        "linux-base"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTING": true,
+        "AEGIS_STRESS_TEST": true
+      }
+    },
+    {
       "name": "linux-release",
       "inherits": [
         "linux-base"
@@ -116,14 +139,65 @@
       "configurePreset": "msvc-test"
     },
     {
+      "name": "msvc-stress-test",
+      "configurePreset": "msvc-stress-test"
+    },
+    {
       "name": "msvc-release",
       "configurePreset": "msvc-release"
+    },
+    {
+      "name": "linux-debug",
+      "configurePreset": "linux-debug"
+    },
+    {
+      "name": "linux-test",
+      "configurePreset": "linux-test"
+    },
+    {
+      "name": "linux-stress-test",
+      "configurePreset": "linux-stress-test"
+    },
+    {
+      "name": "linux-release",
+      "configurePreset": "linux-release"
     }
   ],
   "testPresets": [
     {
       "name": "msvc-test",
       "configurePreset": "msvc-test",
+      "output": {
+        "outputOnFailure": true
+      },
+      "environment": {
+        "ASAN_OPTIONS": "check_initialization_order=1,detect_leaks=1"
+      }
+    },
+    {
+      "name": "msvc-stress-test",
+      "configurePreset": "msvc-stress-test",
+      "output": {
+        "outputOnFailure": true
+      },
+      "environment": {
+        "ASAN_OPTIONS": "check_initialization_order=1,detect_leaks=1"
+      }
+    },
+    {
+      "name": "linux-test",
+      "configurePreset": "linux-test",
+      "output": {
+        "outputOnFailure": true
+      },
+      "environment": {
+        "ASAN_OPTIONS": "check_initialization_order=1,detect_leaks=1",
+        "ASAN_SYMBOLIZER_PATH": "llvm-symbolizer-22"
+      }
+    },
+    {
+      "name": "linux-stress-test",
+      "configurePreset": "linux-stress-test",
       "output": {
         "outputOnFailure": true
       },
