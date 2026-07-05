@@ -15,6 +15,10 @@ if(BUILD_TESTING)
     target_compile_definitions(aegis_build_default INTERFACE AEGIS_BUILD_TEST)
 endif()
 
+if(AEGIS_STRESS_TEST)
+    target_compile_definitions(aegis_build_default INTERFACE AEGIS_BUILD_STRESS_TEST)
+endif()
+
 if(WIN32)
     target_compile_definitions(aegis_build_default INTERFACE
         AEGIS_TARGET_WINDOWS
