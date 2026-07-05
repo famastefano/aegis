@@ -3,7 +3,13 @@
 #include <cmath>
 #include <cstdint>
 #include <memory>
+#include <new>
+#include <type_traits>
 #include <vector>
+
+#ifdef AEGIS_BUILD_TEST
+    #include <unordered_set>
+#endif
 
 namespace aegis::allocators
 {
@@ -105,6 +111,33 @@ template <typename T> class PoolAllocator
         }
     }
 
+#ifdef AEGIS_BUILD_TEST
+    bool debug_validate() const
+    {
+        std::unordered_set<free_list_value_t> traversed_slots;
+
+        free_list_value_t slot = free_list_head_;
+        while (slot)
+        {
+            auto const slot_address = reinterpret_cast<std::uintptr_t>(slot);
+            auto const alignment    = static_cast<std::uintptr_t>(slot_alignment);
+            if (slot_address & (alignment - 1U))
+                return false;
+
+            if (!find_arena(slot))
+                return false;
+
+            if (traversed_slots.contains(slot))
+                return false;
+
+            traversed_slots.emplace_hint(traversed_slots.end(), slot);
+
+            slot = *reinterpret_cast<free_list_value_t *>(slot);
+        }
+        return true;
+    }
+#endif
+
   private:
     arena_t make_arena()
     {
@@ -133,6 +166,7 @@ template <typename T> class PoolAllocator
             *reinterpret_cast<free_list_value_t *>(begin) = begin + 1;
             ++begin;
         }
+        *reinterpret_cast<free_list_value_t *>(end - 1) = nullptr;
     }
 
     void init_free_list()

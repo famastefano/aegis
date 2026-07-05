@@ -10,6 +10,11 @@ project(
 add_library(aegis_build_default INTERFACE)
 add_library(aegis::build_default ALIAS aegis_build_default)
 target_compile_features(aegis_build_default INTERFACE cxx_std_23)
+
+if(BUILD_TESTING)
+    target_compile_definitions(aegis_build_default INTERFACE AEGIS_BUILD_TEST)
+endif()
+
 if(WIN32)
     target_compile_definitions(aegis_build_default INTERFACE
         WIN32_LEAN_AND_MEAN

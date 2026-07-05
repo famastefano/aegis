@@ -147,6 +147,11 @@ void expect_same_pointer_set(const std::vector<T *> &expected_slots, const std::
     EXPECT_EQ(expected_set, actual_set);
 }
 
+template <typename T> void expect_allocator_valid(const PoolAllocator<T> &allocator)
+{
+    EXPECT_TRUE(allocator.debug_validate());
+}
+
 enum class OracleOperation
 {
     acquire,
@@ -183,6 +188,7 @@ void run_oracle_sequence(std::uint32_t capacity, std::initializer_list<OracleOpe
     std::vector<T *>        live_order;
 
     expect_oracle_state(capacity, free_slots, live_slots, live_order);
+    expect_allocator_valid(allocator);
 
     for (auto operation : operations)
     {
@@ -214,6 +220,7 @@ void run_oracle_sequence(std::uint32_t capacity, std::initializer_list<OracleOpe
         }
 
         expect_oracle_state(capacity, free_slots, live_slots, live_order);
+        expect_allocator_valid(allocator);
     }
 }
 
@@ -232,6 +239,8 @@ template <typename T> void run_random_oracle_sequence()
     std::unordered_set<T *> live_slots;
     std::vector<T *>        live_order;
     std::mt19937            random_engine{0xAE615U};
+
+    expect_allocator_valid(allocator);
 
     for (std::uint32_t step = 0; step < steps; ++step)
     {
@@ -262,6 +271,7 @@ template <typename T> void run_random_oracle_sequence()
         }
 
         expect_oracle_state(capacity, free_slots, live_slots, live_order);
+        expect_allocator_valid(allocator);
     }
 }
 
@@ -273,6 +283,7 @@ TYPED_TEST(PoolAllocatorTest, AcquireReturnsAlignedNonNullUniqueLiveSlots)
     const auto slots = acquire_slots(allocator, 5);
 
     expect_aligned_non_null_unique(slots);
+    expect_allocator_valid(allocator);
 }
 
 TYPED_TEST(PoolAllocatorTest, CanAcquireEntirePreallocatedArena)
@@ -283,6 +294,7 @@ TYPED_TEST(PoolAllocatorTest, CanAcquireEntirePreallocatedArena)
     const auto slots = acquire_slots(allocator, slots_per_arena);
 
     expect_aligned_non_null_unique(slots);
+    expect_allocator_valid(allocator);
 }
 
 TYPED_TEST(PoolAllocatorTest, AcquireGrowsAfterEntireArenaIsExhausted)
@@ -299,6 +311,7 @@ TYPED_TEST(PoolAllocatorTest, AcquireGrowsAfterEntireArenaIsExhausted)
 
     const std::unordered_set<TypeParam *> live_slots(slots.begin(), slots.end());
     EXPECT_FALSE(live_slots.contains(extra_slot));
+    expect_allocator_valid(allocator);
 }
 
 TYPED_TEST(PoolAllocatorTest, ReleaseEntireArenaThenReacquireReusesSamePointers)
@@ -310,10 +323,12 @@ TYPED_TEST(PoolAllocatorTest, ReleaseEntireArenaThenReacquireReusesSamePointers)
     expect_aligned_non_null_unique(original_slots);
 
     release_slots(allocator, original_slots);
+    expect_allocator_valid(allocator);
 
     const auto reacquired_slots = acquire_slots(allocator, slots_per_arena);
     expect_aligned_non_null_unique(reacquired_slots);
     expect_same_pointer_set(original_slots, reacquired_slots);
+    expect_allocator_valid(allocator);
 }
 
 TYPED_TEST(PoolAllocatorTest, AcquireReleaseReusesArenaWhenNoArenasWerePreallocated)
@@ -325,10 +340,12 @@ TYPED_TEST(PoolAllocatorTest, AcquireReleaseReusesArenaWhenNoArenasWerePrealloca
     expect_aligned_non_null_unique(original_slots);
 
     release_slots(allocator, original_slots);
+    expect_allocator_valid(allocator);
 
     const auto reacquired_slots = acquire_slots(allocator, slots_per_arena);
     expect_aligned_non_null_unique(reacquired_slots);
     expect_same_pointer_set(original_slots, reacquired_slots);
+    expect_allocator_valid(allocator);
 }
 
 TYPED_TEST(PoolAllocatorTest, CanAcquireAndReuseAcrossMultiplePreallocatedArenas)
@@ -342,10 +359,12 @@ TYPED_TEST(PoolAllocatorTest, CanAcquireAndReuseAcrossMultiplePreallocatedArenas
     expect_aligned_non_null_unique(original_slots);
 
     release_slots(allocator, original_slots);
+    expect_allocator_valid(allocator);
 
     const auto reacquired_slots = acquire_slots(allocator, total_slots);
     expect_aligned_non_null_unique(reacquired_slots);
     expect_same_pointer_set(original_slots, reacquired_slots);
+    expect_allocator_valid(allocator);
 }
 
 TYPED_TEST(PoolAllocatorTest, RepeatedFullArenaAcquireReleaseCyclesRemainStable)
@@ -370,6 +389,8 @@ TYPED_TEST(PoolAllocatorTest, RepeatedFullArenaAcquireReleaseCyclesRemainStable)
             release_slots(allocator, slots);
         else
             release_slots_reversed(allocator, slots);
+
+        expect_allocator_valid(allocator);
     }
 }
 
@@ -383,10 +404,12 @@ TYPED_TEST(PoolAllocatorTest, ReleaseFirstMiddleAndLastSlotsThenReacquireThem)
 
     const std::vector<TypeParam *> released_slots{slots.front(), slots[slots.size() / 2], slots.back()};
     release_slots(allocator, released_slots);
+    expect_allocator_valid(allocator);
 
     const auto reacquired_slots = acquire_slots(allocator, released_slots.size());
     expect_aligned_non_null_unique(reacquired_slots);
     expect_same_pointer_set(released_slots, reacquired_slots);
+    expect_allocator_valid(allocator);
 }
 
 TYPED_TEST(PoolAllocatorTest, MultipleReleasedSlotsAreReusedWithoutLiveDuplication)
@@ -399,6 +422,7 @@ TYPED_TEST(PoolAllocatorTest, MultipleReleasedSlotsAreReusedWithoutLiveDuplicati
 
     const std::vector<TypeParam *> released_slots{slots[6], slots[1], slots[4]};
     release_slots(allocator, released_slots);
+    expect_allocator_valid(allocator);
 
     const auto reacquired_slots = acquire_slots(allocator, released_slots.size());
     expect_aligned_non_null_unique(reacquired_slots);
@@ -414,6 +438,7 @@ TYPED_TEST(PoolAllocatorTest, MultipleReleasedSlotsAreReusedWithoutLiveDuplicati
     live_slots.insert(live_slots.end(), reacquired_slots.begin(), reacquired_slots.end());
 
     expect_aligned_non_null_unique(live_slots);
+    expect_allocator_valid(allocator);
 }
 
 TYPED_TEST(PoolAllocatorTest, DoubleReleaseDoesNotCorruptAllocator)
@@ -427,6 +452,7 @@ TYPED_TEST(PoolAllocatorTest, DoubleReleaseDoesNotCorruptAllocator)
     allocator.release(slots[1]);
     allocator.release(slots[1]);
     allocator.release(slots[5]);
+    expect_allocator_valid(allocator);
 
     const std::vector<TypeParam *> expected_reused_slots{slots[1], slots[5]};
     const auto                     reacquired_slots = acquire_slots(allocator, expected_reused_slots.size());
@@ -443,6 +469,7 @@ TYPED_TEST(PoolAllocatorTest, DoubleReleaseDoesNotCorruptAllocator)
     live_slots.insert(live_slots.end(), reacquired_slots.begin(), reacquired_slots.end());
 
     expect_aligned_non_null_unique(live_slots);
+    expect_allocator_valid(allocator);
 }
 
 TYPED_TEST(PoolAllocatorTest, NullAndForeignReleaseDoNotCorruptAllocator)
@@ -453,10 +480,12 @@ TYPED_TEST(PoolAllocatorTest, NullAndForeignReleaseDoNotCorruptAllocator)
 
     allocator.release(nullptr);
     allocator.release(&foreign_slot);
+    expect_allocator_valid(allocator);
 
     const auto slots = acquire_slots(allocator, slots_per_arena);
 
     expect_aligned_non_null_unique(slots);
+    expect_allocator_valid(allocator);
 }
 
 TYPED_TEST(PoolAllocatorTest, SmallStateOracleSequencesPreserveInvariants)
