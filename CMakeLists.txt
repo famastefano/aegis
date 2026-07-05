@@ -17,6 +17,7 @@ endif()
 
 if(WIN32)
     target_compile_definitions(aegis_build_default INTERFACE
+        AEGIS_TARGET_WINDOWS
         WIN32_LEAN_AND_MEAN
         NOMINMAX
     )
@@ -39,7 +40,47 @@ if(WIN32)
         $<$<CONFIG:Release>:/guard:cf>
     )
 else()
-    message(FATAL_ERROR "Linux TBD")
+    target_compile_definitions(aegis_build_default INTERFACE
+        AEGIS_TARGET_LINUX
+        $<$<CONFIG:Debug>:_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG>
+        $<$<CONFIG:Release>:_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE>
+    )
+    target_compile_options(aegis_build_default INTERFACE
+        # C++ Conformance
+        -pedantic-errors
+        -Wundefined-internal-type
+        -Wundefined-reinterpret-cast
+        -Wsometimes-uninitialized
+        -Wnon-virtual-dtor
+
+        # Debugging
+        -Wall
+        -Wextra
+        -Wdeprecated
+        -Wloop-analysis
+        -Wmethod-signatures
+        -Wthread-safety
+        $<$<CONFIG:Debug>:-g -g3 -fno-omit-frame-pointer>
+
+        # Hardening
+        -Walloca
+        -Wunsafe-buffer-usage
+        -fsafe-buffer-usage-suggestions
+
+        # Performance
+        -Wnrvo
+        -Wweak-vtables
+    )
+    if(BUILD_TESTING)
+        target_compile_options(aegis_build_default INTERFACE
+            -fsanitize=address
+            -fsanitize-address-use-after-scope
+            -fsanitize-address-use-after-return=always
+        )
+        target_link_libraries(aegis_build_default INTERFACE
+            -fsanitize=address
+        )
+    endif()
 endif()
 
 # 3rd-Party Deps

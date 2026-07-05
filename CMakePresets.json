@@ -34,7 +34,6 @@
       "inherits": [
         "msvc-base"
       ],
-      "displayName": "MSVC Debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
       }
@@ -44,7 +43,6 @@
       "inherits": [
         "msvc-base"
       ],
-      "displayName": "MSVC Testing",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "BUILD_TESTING": true
@@ -54,6 +52,54 @@
       "name": "msvc-release",
       "inherits": [
         "msvc-base"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "linux-base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang-22",
+        "CMAKE_CXX_COMPILER": "clang++-22",
+        "CMAKE_CXX_STANDARD": "23",
+        "CMAKE_CXX_STANDARD_REQUIRED": true,
+        "CMAKE_CXX_EXTENSIONS": false,
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+        "BUILD_TESTING": false
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "linux-debug",
+      "inherits": [
+        "linux-base"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "linux-test",
+      "inherits": [
+        "linux-base"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTING": true
+      }
+    },
+    {
+      "name": "linux-release",
+      "inherits": [
+        "linux-base"
       ],
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
@@ -80,6 +126,10 @@
       "configurePreset": "msvc-test",
       "output": {
         "outputOnFailure": true
+      },
+      "environment": {
+        "ASAN_OPTIONS": "check_initialization_order=1,detect_leaks=1",
+        "ASAN_SYMBOLIZER_PATH": "llvm-symbolizer-22"
       }
     }
   ]
