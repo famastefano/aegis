@@ -175,6 +175,28 @@ template <typename T> class PoolAllocator
         }
         return true;
     }
+
+    bool debug_is_empty() const
+    { return debug_calculate_allocated_ratio() == 0.0f; }
+
+    bool debug_is_full() const
+    { return !free_list_head_; }
+
+    float debug_calculate_allocated_ratio() const
+    {
+        std::uint64_t const allocated_slots = arenas_.size() * slots_per_arena_;
+        std::uint64_t       free_slots      = 0;
+
+        free_list_value_t slot = free_list_head_;
+        while (slot)
+        {
+            ASAN_UNPOISON_MEMORY_REGION(slot, sizeof(slot_type_t));
+            slot = *reinterpret_cast<free_list_value_t *>(slot);
+            ASAN_POISON_MEMORY_REGION(slot, sizeof(slot_type_t));
+            ++free_slots;
+        }
+        return float(free_slots) / allocated_slots;
+    }
 #endif
 
   private:
