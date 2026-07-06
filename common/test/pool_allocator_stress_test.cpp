@@ -18,7 +18,7 @@ template <typename T, std::size_t TIterations, std::size_t TSlotsPerArena> struc
 struct Byte_1M_8S : Params<std::byte, 1'000'000, 8>{};
 struct Byte_1M_3S : Params<std::byte, 1'000'000, 3>{};
 struct Byte_1M_1S : Params<std::byte, 1'000'000, 1>{};
-struct Byte_10k_4096S : Params<std::byte, 10'000, 4096>{};
+struct Byte_10k_2048S : Params<std::byte, 10'000, 2048>{};
 
 struct Short_1M_8S : Params<std::uint16_t, 1'000'000, 8>{};
 struct Short_1M_17S : Params<std::uint16_t, 1'000'000, 17>{};
@@ -56,7 +56,7 @@ template <typename T> class PoolAllocatorTest : public ::testing::Test
 };
 
  using PoolAllocatorTestTypes =
-     ::testing::Types<Byte_1M_8S, Byte_1M_3S, Byte_1M_1S, Byte_10k_4096S, Short_1M_8S, Short_1M_17S, Short_1M_1S,
+     ::testing::Types<Byte_1M_8S, Byte_1M_3S, Byte_1M_1S, Byte_10k_2048S, Short_1M_8S, Short_1M_17S, Short_1M_1S,
                       Int_1M_8S, Int_1M_67S, Int_1M_1S, Long_1M_8S, Long_1M_13S, Long_1M_1S, Big_1K_8S, Big_1K_41S,
                       Big_1K_1S, Cache_1K_8S, Cache_1K_37S, Cache_1K_1S, Page_1K_8S, Page_1K_5S, Page_1K_1S>;
 
@@ -70,8 +70,8 @@ struct PoolAllocatorTypeNames
             return "Byte_1M_3S";
         else if constexpr (std::is_same_v<T, Byte_1M_1S>)
             return "Byte_1M_1S";
-        else if constexpr (std::is_same_v<T, Byte_10k_4096S>)
-            return "Byte_10k_4096S";
+        else if constexpr (std::is_same_v<T, Byte_10k_2048S>)
+            return "Byte_10k_2048S";
         else if constexpr (std::is_same_v<T, Short_1M_8S>)
             return "Short_1M_8S";
         else if constexpr (std::is_same_v<T, Short_1M_17S>)

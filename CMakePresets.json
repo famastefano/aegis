@@ -61,6 +61,17 @@
       }
     },
     {
+      "name": "msvc-stress-test-rel",
+      "inherits": [
+        "msvc-base"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": true,
+        "AEGIS_STRESS_TEST": true
+      }
+    },
+    {
       "name": "msvc-release",
       "inherits": [
         "msvc-base"
@@ -115,6 +126,17 @@
       ],
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTING": true,
+        "AEGIS_STRESS_TEST": true
+      }
+    },
+    {
+      "name": "linux-stress-test-rel",
+      "inherits": [
+        "linux-base"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
         "BUILD_TESTING": true,
         "AEGIS_STRESS_TEST": true
       }
