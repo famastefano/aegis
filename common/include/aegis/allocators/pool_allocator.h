@@ -277,9 +277,10 @@ template <typename T> class PoolAllocator
         while (begin != end)
         {
             ASAN_UNPOISON_MEMORY_REGION(begin, traits_t::slot_size());
-            *traits_t::as_ptr(begin) = traits_t::next_unchecked(begin);
+            auto next                = traits_t::next_unchecked(begin);
+            *traits_t::as_ptr(begin) = next;
             ASAN_POISON_MEMORY_REGION(begin, traits_t::slot_size());
-            begin = traits_t::next(begin);
+            begin = next;
         }
         auto tail = traits_t::as_ptr(traits_t::prev_unchecked(end));
         ASAN_UNPOISON_MEMORY_REGION(tail, traits_t::slot_size());
