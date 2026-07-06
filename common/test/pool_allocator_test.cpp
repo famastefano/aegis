@@ -29,6 +29,11 @@ struct alignas(4096) Hacker
     std::byte _[1337];
 };
 
+struct Hacker_DefaultAlign
+{
+    std::byte _[1337];
+};
+
 template <typename> constexpr bool dependent_false_v = false;
 
 template <typename T> class PoolAllocatorTest : public ::testing::Test
@@ -36,7 +41,7 @@ template <typename T> class PoolAllocatorTest : public ::testing::Test
 };
 
 using PoolAllocatorTestTypes = ::testing::Types<std::byte, std::uint16_t, std::uint32_t, std::uint64_t, PointerSized,
-                                                LargerThanPointer, Align16, Align64, Hacker>;
+                                                LargerThanPointer, Align16, Align64, Hacker, Hacker_DefaultAlign>;
 
 struct PoolAllocatorTypeNames
 {
@@ -60,6 +65,8 @@ struct PoolAllocatorTypeNames
             return "Align64";
         else if constexpr (std::is_same_v<T, Hacker>)
             return "Hacker";
+        else if constexpr (std::is_same_v<T, Hacker_DefaultAlign>)
+            return "Hacker_DefaultAlign";
         else
         {
             static_assert(dependent_false_v<T>, "Unexpected PoolAllocator typed-test parameter");
