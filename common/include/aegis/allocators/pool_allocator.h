@@ -48,10 +48,10 @@ template <typename T> struct PoolAllocatorTraits
     };
     using arena_t = typename std::unique_ptr<unsigned char[], arena_deleter_t>;
 
-    static constexpr auto alignment()
+    static constexpr std::size_t alignment()
     { return std::max(alignof(T), alignof(free_slot_t)); }
 
-    static constexpr auto slot_size()
+    static constexpr std::size_t slot_size()
     {
         if constexpr (sizeof(slot_type_t) % alignment() == 0)
             return sizeof(slot_type_t);
@@ -59,28 +59,30 @@ template <typename T> struct PoolAllocatorTraits
             return sizeof(slot_type_t) + alignment();
     }
 
-    static constexpr free_slot_t from_pos(arena_t const &arena, std::size_t pos)
+    static constexpr std::size_t alignment_stride()
     {
-        void  *p       = arena.get() + slot_size() * pos;
-        size_t buffer  = slot_size();
-        void  *aligned = std::align(alignment(), sizeof(slot_type_t), p, buffer);
+        constexpr auto sz     = slot_size();
+        constexpr auto align  = alignment();
+        constexpr auto offset = sz & (align - 1);
+        return sz - offset;
+    }
+
+    static constexpr bool is_aligned(free_slot_t slot)
+    { return !(reinterpret_cast<std::uintptr_t>(slot) & (alignment() - 1)); }
+
+    static constexpr free_slot_t align_slot(free_slot_t slot)
+    {
+        constexpr auto align = alignment();
+        constexpr auto sz    = slot_size();
+
+        void  *p       = slot;
+        size_t buffer  = sz;
+        void  *aligned = std::align(align, sizeof(slot_type_t), p, buffer);
         return reinterpret_cast<free_slot_t>(aligned);
     }
 
-    static constexpr free_slot_t prev_unchecked(free_slot_t slot)
-    {
-        void  *prev_slot = as_ptr(slot - slot_size());
-        size_t buffer    = slot_size();
-        void  *aligned   = std::align(alignment(), sizeof(slot_type_t), prev_slot, buffer);
-        return reinterpret_cast<free_slot_t>(aligned);
-    }
-    static constexpr free_slot_t next_unchecked(free_slot_t slot)
-    {
-        void  *next_slot = as_ptr(slot + slot_size());
-        size_t buffer    = slot_size();
-        void  *aligned   = std::align(alignment(), sizeof(slot_type_t), next_slot, buffer);
-        return reinterpret_cast<free_slot_t>(aligned);
-    }
+    static constexpr free_slot_t from_pos(arena_t const &arena, std::size_t pos)
+    { return align_slot(arena.get() + slot_size() * pos); }
 
     static constexpr free_slot_t next(free_slot_t slot)
     { return *as_ptr(slot); }
@@ -128,7 +130,7 @@ template <typename T> class PoolAllocator
     void release(T *p)
     {
         // Not allocated by us
-        if (!p || !find_arena(p))
+        if (!p || !traits_t::is_aligned(reinterpret_cast<typename traits_t::free_slot_t>(p)) || !find_arena(p))
             return;
 
         if (!free_list_head_)
@@ -272,17 +274,15 @@ template <typename T> class PoolAllocator
 
     void init_free_list(typename traits_t::arena_t &arena)
     {
-        auto       begin = traits_t::from_pos(arena, 0);
-        auto const end   = traits_t::from_pos(arena, slots_per_arena_);
-        while (begin != end)
+        for (std::size_t slot_num = 0; slot_num < slots_per_arena_; ++slot_num)
         {
-            ASAN_UNPOISON_MEMORY_REGION(begin, traits_t::slot_size());
-            auto next                = traits_t::next_unchecked(begin);
-            *traits_t::as_ptr(begin) = next;
-            ASAN_POISON_MEMORY_REGION(begin, traits_t::slot_size());
-            begin = next;
+            auto slot = traits_t::from_pos(arena, slot_num);
+            ASAN_UNPOISON_MEMORY_REGION(slot, traits_t::slot_size());
+            auto next               = traits_t::from_pos(arena, slot_num + 1);
+            *traits_t::as_ptr(slot) = next;
+            ASAN_POISON_MEMORY_REGION(slot, traits_t::slot_size());
         }
-        auto tail = traits_t::as_ptr(traits_t::prev_unchecked(end));
+        auto tail = traits_t::as_ptr(traits_t::from_pos(arena, slots_per_arena_ - 1));
         ASAN_UNPOISON_MEMORY_REGION(tail, traits_t::slot_size());
         *tail = nullptr;
         ASAN_POISON_MEMORY_REGION(tail, traits_t::slot_size());
