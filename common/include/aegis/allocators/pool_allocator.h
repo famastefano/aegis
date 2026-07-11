@@ -239,6 +239,8 @@ template <typename T> class PoolAllocator
         std::uint64_t       free_slots      = 0;
 
         auto slot = free_list_head_;
+        if (slot)
+            ++free_slots;
         while (slot)
         {
             ASAN_UNPOISON_MEMORY_REGION(slot, traits_t::slot_size());
@@ -246,7 +248,7 @@ template <typename T> class PoolAllocator
             ASAN_POISON_MEMORY_REGION(slot, traits_t::slot_size());
             ++free_slots;
         }
-        return float(free_slots) / allocated_slots;
+        return 1.0f - float(free_slots) / allocated_slots;
     }
 #endif
 
