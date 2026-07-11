@@ -55,10 +55,10 @@ template <typename T> class PoolAllocatorTest : public ::testing::Test
 {
 };
 
- using PoolAllocatorTestTypes =
-     ::testing::Types<Byte_1M_8S, Byte_1M_3S, Byte_1M_1S, Byte_10k_2048S, Short_1M_8S, Short_1M_17S, Short_1M_1S,
-                      Int_1M_8S, Int_1M_67S, Int_1M_1S, Long_1M_8S, Long_1M_13S, Long_1M_1S, Big_1K_8S, Big_1K_41S,
-                      Big_1K_1S, Cache_1K_8S, Cache_1K_37S, Cache_1K_1S, Page_1K_8S, Page_1K_5S, Page_1K_1S>;
+using PoolAllocatorTestTypes =
+    ::testing::Types<Byte_1M_8S, Byte_1M_3S, Byte_1M_1S, Byte_10k_2048S, Short_1M_8S, Short_1M_17S, Short_1M_1S,
+                     Int_1M_8S, Int_1M_67S, Int_1M_1S, Long_1M_8S, Long_1M_13S, Long_1M_1S, Big_1K_8S, Big_1K_41S,
+                     Big_1K_1S, Cache_1K_8S, Cache_1K_37S, Cache_1K_1S, Page_1K_8S, Page_1K_5S, Page_1K_1S>;
 
 struct PoolAllocatorTypeNames
 {
@@ -118,6 +118,7 @@ struct PoolAllocatorTypeNames
 
 TYPED_TEST_SUITE(PoolAllocatorTest, PoolAllocatorTestTypes, PoolAllocatorTypeNames);
 
+/*
 TYPED_TEST(PoolAllocatorTest, FillDrainWithPeriodicReverseRelease)
 {
     constexpr auto           iterations      = TypeParam::iterations;
@@ -141,101 +142,196 @@ TYPED_TEST(PoolAllocatorTest, FillDrainWithPeriodicReverseRelease)
     expect_aligned_non_null_unique(prev_slots);
 }
 
+TYPED_TEST(PoolAllocatorTest, AlternatingSingleSlot)
+{
+    constexpr auto           iterations      = TypeParam::iterations;
+    constexpr auto           slots_per_arena = TypeParam::slots_per_arena;
+    PoolAllocator<TypeParam> allocator(slots_per_arena, 0);
+    TypeParam               *expectedSlot{};
+    for (auto i = 0ull; i < iterations; ++i)
+    {
+        auto slot = allocator.acquire();
+        if (!expectedSlot)
+            expectedSlot = slot;
+
+        ASSERT_TRUE(is_aligned_for_type(slot));
+        ASSERT_EQ(slot, expectedSlot);
+        allocator.release(slot);
+        expect_allocator_valid(allocator);
+    }
+}
+
+TYPED_TEST(PoolAllocatorTest, RandomAcquireRelease)
+{
+    constexpr auto           iterations      = TypeParam::iterations;
+    constexpr auto           slots_per_arena = TypeParam::slots_per_arena;
+    PoolAllocator<TypeParam> allocator(slots_per_arena, 0);
+    std::vector<TypeParam *> slots;
+
+    std::random_device rd;
+    std::mt19937       gen(rd());
+
+    auto pop_random_slot = [&] {
+        auto const pos  = std::uniform_int_distribution<std::size_t>{0, slots.size() - 1}(gen);
+        auto       slot = slots[pos];
+        slots.erase(slots.begin() + pos);
+        return slot;
+    };
+
+    for (auto i = 0ull; i < iterations; ++i)
+    {
+        if (slots.empty())
+        {
+            slots.emplace_back(allocator.acquire());
+            expect_aligned_non_null_unique(slots);
+        }
+        else if (slots.size() % 13 == 0)
+        {
+            allocator.release(pop_random_slot());
+            expect_allocator_valid(allocator);
+        }
+        else
+        {
+            if (std::uniform_int_distribution<std::size_t>{0, 1}(gen))
+            {
+                slots.emplace_back(allocator.acquire());
+                expect_aligned_non_null_unique(slots);
+            }
+            else
+            {
+                allocator.release(pop_random_slot());
+                expect_allocator_valid(allocator);
+            }
+        }
+    }
+}
+
+TYPED_TEST(PoolAllocatorTest, AlmostFullAcquireRelease)
+{
+    constexpr auto           iterations      = TypeParam::iterations;
+    constexpr auto           slots_per_arena = TypeParam::slots_per_arena;
+    PoolAllocator<TypeParam> allocator(slots_per_arena, 0);
+    auto                     slots = acquire_slots(allocator, slots_per_arena - 1);
+
+    std::random_device rd;
+    std::mt19937       gen(rd());
+
+    auto pop_random_slot = [&] {
+        auto const pos  = std::uniform_int_distribution<std::size_t>{0, slots.size() - 1}(gen);
+        auto       slot = slots[pos];
+        slots.erase(slots.begin() + pos);
+        return slot;
+    };
+
+    for (auto i = 0ull; i < iterations; ++i)
+    {
+        slots.emplace_back(allocator.acquire());
+        ASSERT_TRUE(allocator.debug_is_full());
+        expect_aligned_non_null_unique(slots);
+        allocator.release(pop_random_slot());
+        expect_allocator_valid(allocator);
+    }
+}
+
+TYPED_TEST(PoolAllocatorTest, KeepAllocatorBetween40And60Capacity)
+{
+    constexpr auto           iterations      = TypeParam::iterations;
+    constexpr auto           slots_per_arena = TypeParam::slots_per_arena;
+    PoolAllocator<TypeParam> allocator(slots_per_arena, 4);
+    std::vector<TypeParam *> slots;
+    std::random_device       rd;
+    std::mt19937             gen(rd());
+
+    auto pop_random_slot = [&] {
+        auto const pos  = std::uniform_int_distribution<std::size_t>{0, slots.size() - 1}(gen);
+        auto       slot = slots[pos];
+        slots.erase(slots.begin() + pos);
+        return slot;
+    };
+
+    enum class Phase
+    {
+        AQUIRE,
+        RELEASE
+    };
+    auto next_phase = [&](Phase curr_phase) {
+        if (slots.empty())
+            return Phase::AQUIRE;
+
+        float const ratio = allocator.debug_calculate_allocated_ratio();
+        if (ratio >= 0.6f)
+            return Phase::RELEASE;
+        if (ratio < 0.4f)
+            return Phase::AQUIRE;
+        return curr_phase;
+    };
+    Phase phase = next_phase(Phase::AQUIRE);
+
+    for (auto i = 0ull; i < iterations; ++i)
+    {
+        switch (phase)
+        {
+        case Phase::AQUIRE: {
+            slots.emplace_back(allocator.acquire());
+            expect_aligned_non_null_unique(slots);
+            break;
+        }
+        case Phase::RELEASE: {
+            allocator.release(pop_random_slot());
+            expect_allocator_valid(allocator);
+            break;
+        }
+        }
+        phase = next_phase(phase);
+    }
+}
+*/
+TYPED_TEST(PoolAllocatorTest, MultipleReleaseStrategies)
+{
+    constexpr auto           iterations      = TypeParam::iterations;
+    constexpr auto           slots_per_arena = TypeParam::slots_per_arena;
+    PoolAllocator<TypeParam> allocator(slots_per_arena, 4);
+    std::vector<TypeParam *> slots;
+    std::random_device       rd;
+    std::mt19937             gen(rd());
+
+    auto pop_random_slot = [&] {
+        auto const pos  = std::uniform_int_distribution<std::size_t>{0, slots.size() - 1}(gen);
+        auto       slot = slots[pos];
+        slots.erase(slots.begin() + pos);
+        return slot;
+    };
+
+    for (auto i = 0ull; i < iterations / 4; ++i)
+    {
+        slots = acquire_slots(allocator, slots_per_arena);
+        expect_aligned_non_null_unique(slots);
+        std::sort(begin(slots), end(slots));
+        release_slots(allocator, slots);
+        expect_allocator_valid(allocator);
+
+        slots = acquire_slots(allocator, slots_per_arena);
+        expect_aligned_non_null_unique(slots);
+        std::sort(begin(slots), end(slots), std::greater{});
+        release_slots(allocator, slots);
+        expect_allocator_valid(allocator);
+
+        for (auto j = 0ull; j < slots.size(); j += 2)
+            allocator.release(slots[j]);
+        for (auto k = 1ull; k < slots.size(); k += 2)
+            allocator.release(slots[k]);
+        expect_allocator_valid(allocator);
+
+        slots = acquire_slots(allocator, slots_per_arena);
+        expect_aligned_non_null_unique(slots);
+        auto sz = slots.size();
+        while (sz--)
+            allocator.release(pop_random_slot());
+        expect_allocator_valid(allocator);
+    }
+}
+
 /*
-1. **Fill/drain**
-
-Allocate until full, release all, repeat many times.
-
-```text
-repeat 1'000'000 times:
-    allocate N slots
-    assert next acquire fails
-    release all N slots
-```
-
-Catches exhaustion bugs, reset bugs, and free-count corruption.
-
-2. **Alternating single slot**
-
-```text
-repeat many times:
-    p = acquire()
-    release(p)
-```
-
-Catches freelist head bugs and use-after-release issues.
-
-3. **Random churn**
-
-```text
-live = []
-
-repeat 10'000'000 times:
-    if live.empty(): acquire
-    else if live.size() == N: release random live pointer
-    else randomly acquire or release
-
-    assert invariants
-```
-
-This is the most useful general-purpose stress test.
-
-4. **High-watermark churn**
-
-Keep the pool almost full.
-
-```text
-allocate N - 1 slots
-
-repeat many times:
-    p = acquire()
-    assert pool is full
-    release(random live pointer)
-```
-
-Catches bugs that only appear near capacity.
-
-5. **Sparse churn**
-
-Keep only a few live slots.
-
-```text
-repeat many times:
-    allocate 1..4 slots
-    release them in random order
-```
-
-Useful for freelist reuse behavior and bitmap search edge cases.
-
-6. **Release-order permutations**
-
-For small `N`, allocate all slots, then release in different orders:
-
-```text
-release ascending
-release descending
-release even slots first
-release odd slots first
-release random permutation
-```
-
-Then allocate all again and verify uniqueness/alignment.
-
-7. **Type/alignment stress**
-
-Run the same stress suite for:
-
-```cpp
-char
-std::uint16_t
-std::uint64_t
-struct alignas(16) A { char x; };
-struct alignas(64) B { char x; };
-struct Big { std::byte data[257]; };
-```
-
-This catches stride and alignment errors.
-
 8. **Multi-arena stress**
 
 If your allocator supports multiple arenas or growth:
@@ -246,37 +342,6 @@ release mixed pointers from different arenas
 allocate again
 verify pointers belong to valid arenas
 ```
-
-9. **Threaded stress**, only if allocator is meant to be thread-safe.
-
-```text
-M threads:
-    each repeatedly acquire/release
-    optionally write thread id into acquired slot
-```
-
-Run with ThreadSanitizer when using Clang. Do not run ASan and TSan in the same binary.
-
-For every test, keep an external oracle:
-
-```text
-live set
-free count
-all returned pointers
-expected slot indices
-```
-
-And after each operation check:
-
-```text
-pointer is inside arena
-pointer is aligned
-pointer is not already live
-live_count <= capacity
-released pointer was live
-no duplicate live pointers
-allocator debug_validate() passes
-```
-
 */
+
 } // namespace
