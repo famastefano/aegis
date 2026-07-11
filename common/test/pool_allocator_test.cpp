@@ -163,14 +163,16 @@ template <typename T> void run_random_oracle_sequence()
     std::unordered_set<T *> free_slots(universe.begin(), universe.end());
     std::unordered_set<T *> live_slots;
     std::vector<T *>        live_order;
-    std::mt19937            random_engine{0xAE615U};
+
+    std::random_device                 rd;
+    std::mt19937                       random_engine(rd());
+    std::uniform_int_distribution<int> dist{0, 1};
 
     expect_allocator_valid(allocator);
 
     for (std::uint32_t step = 0; step < steps; ++step)
     {
-        bool const should_acquire =
-            live_slots.empty() || (!free_slots.empty() && std::uniform_int_distribution<int>{0, 1}(random_engine) == 0);
+        bool const should_acquire = live_slots.empty() || (!free_slots.empty() && dist(random_engine) == 0);
 
         if (should_acquire)
         {
