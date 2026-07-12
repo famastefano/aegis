@@ -3,49 +3,77 @@
 namespace
 {
 using aegis::allocators::PoolAllocator;
+using aegis::allocators::impl::OrderedReleasePolicy;
+using aegis::allocators::impl::UnorderedReleasePolicy;
 
-template <typename T, std::size_t TIterations, std::size_t TSlotsPerArena> struct Params
+template <typename T, std::size_t TIterations, std::size_t TSlotsPerArena, typename TReleasePolicy> struct Params
 {
+    using allocator_t = PoolAllocator<T, TReleasePolicy>;
+    using allocated_t = T;
+
     inline static constexpr auto iterations        = TIterations;
     inline static constexpr auto slots_per_arena   = TSlotsPerArena;
     inline static constexpr auto element_size      = sizeof(T);
     inline static constexpr auto element_alignment = alignof(T);
 
-    T _;
+    static constexpr bool is_ordered()
+    { return std::is_same_v<OrderedReleasePolicy<T>, TReleasePolicy>; }
 };
 
 // clang-format off
-struct Byte_1M_8S : Params<std::byte, 1'000'000, 8>{};
-struct Byte_1M_3S : Params<std::byte, 1'000'000, 3>{};
-struct Byte_1M_1S : Params<std::byte, 1'000'000, 1>{};
-struct Byte_10k_2048S : Params<std::byte, 10'000, 2048>{};
+struct Byte_1M_8S_O     : Params<uint8_t,     1'000'000,    8, OrderedReleasePolicy  <uint8_t>>{};
+struct Byte_1M_8S_U     : Params<uint8_t,     1'000'000,    8, UnorderedReleasePolicy<uint8_t>>{};
+struct Byte_1M_3S_O     : Params<uint8_t,     1'000'000,    3, OrderedReleasePolicy  <uint8_t>>{};
+struct Byte_1M_3S_U     : Params<uint8_t,     1'000'000,    3, UnorderedReleasePolicy<uint8_t>>{};
+struct Byte_1M_1S_O     : Params<uint8_t,     1'000'000,    1, OrderedReleasePolicy  <uint8_t>>{};
+struct Byte_1M_1S_U     : Params<uint8_t,     1'000'000,    1, UnorderedReleasePolicy<uint8_t>>{};
+struct Byte_10k_2048S_O : Params<uint8_t,        10'000, 2048, OrderedReleasePolicy  <uint8_t>>{};
+struct Byte_10k_2048S_U : Params<uint8_t,        10'000, 2048, UnorderedReleasePolicy<uint8_t>>{};
 
-struct Short_1M_8S : Params<std::uint16_t, 1'000'000, 8>{};
-struct Short_1M_17S : Params<std::uint16_t, 1'000'000, 17>{};
-struct Short_1M_1S : Params<std::uint16_t, 1'000'000, 1>{};
+struct Short_1M_8S_O    : Params<uint16_t, 1'000'000,    8, OrderedReleasePolicy  <uint16_t>>{};
+struct Short_1M_8S_U    : Params<uint16_t, 1'000'000,    8, UnorderedReleasePolicy<uint16_t>>{};
+struct Short_1M_17S_O   : Params<uint16_t, 1'000'000,   17, OrderedReleasePolicy  <uint16_t>>{};
+struct Short_1M_17S_U   : Params<uint16_t, 1'000'000,   17, UnorderedReleasePolicy<uint16_t>>{};
+struct Short_1M_1S_O    : Params<uint16_t, 1'000'000,    1, OrderedReleasePolicy  <uint16_t>>{};
+struct Short_1M_1S_U    : Params<uint16_t, 1'000'000,    1, UnorderedReleasePolicy<uint16_t>>{};
 
-struct Int_1M_8S : Params<std::uint32_t, 1'000'000, 8>{};
-struct Int_1M_67S : Params<std::uint32_t, 1'000'000, 67>{};
-struct Int_1M_1S : Params<std::uint32_t, 1'000'000, 1>{};
+struct Int_1M_8S_O      : Params<uint32_t, 1'000'000,    8, OrderedReleasePolicy  <uint32_t>>{};
+struct Int_1M_8S_U      : Params<uint32_t, 1'000'000,    8, UnorderedReleasePolicy<uint32_t>>{};
+struct Int_1M_67S_O     : Params<uint32_t, 1'000'000,   67, OrderedReleasePolicy  <uint32_t>>{};
+struct Int_1M_67S_U     : Params<uint32_t, 1'000'000,   67, UnorderedReleasePolicy<uint32_t>>{};
+struct Int_1M_1S_O      : Params<uint32_t, 1'000'000,    1, OrderedReleasePolicy  <uint32_t>>{};
+struct Int_1M_1S_U      : Params<uint32_t, 1'000'000,    1, UnorderedReleasePolicy<uint32_t>>{};
 
-struct Long_1M_8S : Params<std::uint64_t, 1'000'000, 8>{};
-struct Long_1M_13S : Params<std::uint64_t, 1'000'000, 13>{};
-struct Long_1M_1S : Params<std::uint64_t, 1'000'000, 1>{};
+struct Long_1M_8S_O     : Params<uint64_t, 1'000'000,    8, OrderedReleasePolicy  <uint64_t>>{};
+struct Long_1M_8S_U     : Params<uint64_t, 1'000'000,    8, UnorderedReleasePolicy<uint64_t>>{};
+struct Long_1M_13S_O    : Params<uint64_t, 1'000'000,   13, OrderedReleasePolicy  <uint64_t>>{};
+struct Long_1M_13S_U    : Params<uint64_t, 1'000'000,   13, UnorderedReleasePolicy<uint64_t>>{};
+struct Long_1M_1S_O     : Params<uint64_t, 1'000'000,    1, OrderedReleasePolicy  <uint64_t>>{};
+struct Long_1M_1S_U     : Params<uint64_t, 1'000'000,    1, UnorderedReleasePolicy<uint64_t>>{};
 
 struct BigData { std::byte _[1337]; };
-struct Big_1K_8S : Params<BigData, 1'000, 8> {};
-struct Big_1K_41S : Params<BigData, 1'000, 41> {};
-struct Big_1K_1S : Params<BigData, 1'000, 1> {};
+struct Big_1K_8S_O      : Params<BigData,       1'000,        8, OrderedReleasePolicy  <BigData>> {};
+struct Big_1K_8S_U      : Params<BigData,       1'000,        8, UnorderedReleasePolicy<BigData>> {};
+struct Big_1K_41S_O     : Params<BigData,       1'000,       41, OrderedReleasePolicy  <BigData>> {};
+struct Big_1K_41S_U     : Params<BigData,       1'000,       41, UnorderedReleasePolicy<BigData>> {};
+struct Big_1K_1S_O      : Params<BigData,       1'000,        1, OrderedReleasePolicy  <BigData>> {};
+struct Big_1K_1S_U      : Params<BigData,       1'000,        1, UnorderedReleasePolicy<BigData>> {};
 
-struct alignas(64) CacheAlignData { std::byte _[64]; };
-struct Cache_1K_8S : Params<CacheAlignData, 1'000, 8> {};
-struct Cache_1K_37S : Params<CacheAlignData, 1'000, 37> {};
-struct Cache_1K_1S : Params<CacheAlignData, 1'000, 1> {};
+struct alignas(64) BigCache { std::byte _[64]; };
+struct Cache_1K_8S_O    : Params<BigCache,      1'000,        8, OrderedReleasePolicy  <BigCache>> {};
+struct Cache_1K_8S_U    : Params<BigCache,      1'000,        8, UnorderedReleasePolicy<BigCache>> {};
+struct Cache_1K_37S_O   : Params<BigCache,      1'000,       37, OrderedReleasePolicy  <BigCache>> {};
+struct Cache_1K_37S_U   : Params<BigCache,      1'000,       37, UnorderedReleasePolicy<BigCache>> {};
+struct Cache_1K_1S_O    : Params<BigCache,      1'000,        1, OrderedReleasePolicy  <BigCache>> {};
+struct Cache_1K_1S_U    : Params<BigCache,      1'000,        1, UnorderedReleasePolicy<BigCache>> {};
 
 struct alignas(4096) PageAlignData { std::byte _[32]; };
-struct Page_1K_8S : Params<PageAlignData, 1'000, 8> {};
-struct Page_1K_5S : Params<PageAlignData, 1'000, 5> {};
-struct Page_1K_1S : Params<PageAlignData, 1'000, 1> {};
+struct Page_1K_8S_O     : Params<PageAlignData, 1'000,        8, OrderedReleasePolicy  <PageAlignData>> {};
+struct Page_1K_8S_U     : Params<PageAlignData, 1'000,        8, UnorderedReleasePolicy<PageAlignData>> {};
+struct Page_1K_5S_O     : Params<PageAlignData, 1'000,        5, OrderedReleasePolicy  <PageAlignData>> {};
+struct Page_1K_5S_U     : Params<PageAlignData, 1'000,        5, UnorderedReleasePolicy<PageAlignData>> {};
+struct Page_1K_1S_O     : Params<PageAlignData, 1'000,        1, OrderedReleasePolicy  <PageAlignData>> {};
+struct Page_1K_1S_U     : Params<PageAlignData, 1'000,        1, UnorderedReleasePolicy<PageAlignData>> {};
 
 // clang-format on
 
@@ -56,63 +84,73 @@ template <typename T> class PoolAllocatorTest : public ::testing::Test
 };
 
 using PoolAllocatorTestTypes =
-    ::testing::Types<Byte_1M_8S, Byte_1M_3S, Byte_1M_1S, Byte_10k_2048S, Short_1M_8S, Short_1M_17S, Short_1M_1S,
-                     Int_1M_8S, Int_1M_67S, Int_1M_1S, Long_1M_8S, Long_1M_13S, Long_1M_1S, Big_1K_8S, Big_1K_41S,
-                     Big_1K_1S, Cache_1K_8S, Cache_1K_37S, Cache_1K_1S, Page_1K_8S, Page_1K_5S, Page_1K_1S>;
+    ::testing::Types<Byte_1M_8S_O, Byte_1M_8S_U, Byte_1M_3S_O, Byte_1M_3S_U, Byte_1M_1S_O, Byte_1M_1S_U,
+                     Byte_10k_2048S_O, Byte_10k_2048S_U, Short_1M_8S_O, Short_1M_8S_U, Short_1M_17S_O, Short_1M_17S_U,
+                     Short_1M_1S_O, Short_1M_1S_U, Int_1M_8S_O, Int_1M_8S_U, Int_1M_67S_O, Int_1M_67S_U, Int_1M_1S_O,
+                     Int_1M_1S_U, Long_1M_8S_O, Long_1M_8S_U, Long_1M_13S_O, Long_1M_13S_U, Long_1M_1S_O, Long_1M_1S_U,
+                     Big_1K_8S_O, Big_1K_8S_U, Big_1K_41S_O, Big_1K_41S_U, Big_1K_1S_O, Big_1K_1S_U, Cache_1K_8S_O,
+                     Cache_1K_8S_U, Cache_1K_37S_O, Cache_1K_37S_U, Cache_1K_1S_O, Cache_1K_1S_U, Page_1K_8S_O,
+                     Page_1K_8S_U, Page_1K_5S_O, Page_1K_5S_U, Page_1K_1S_O, Page_1K_1S_U>;
 
 struct PoolAllocatorTypeNames
 {
     template <typename T> static std::string GetName(int)
     {
-        if constexpr (std::is_same_v<T, Byte_1M_8S>)
-            return "Byte_1M_8S";
-        else if constexpr (std::is_same_v<T, Byte_1M_3S>)
-            return "Byte_1M_3S";
-        else if constexpr (std::is_same_v<T, Byte_1M_1S>)
-            return "Byte_1M_1S";
-        else if constexpr (std::is_same_v<T, Byte_10k_2048S>)
-            return "Byte_10k_2048S";
-        else if constexpr (std::is_same_v<T, Short_1M_8S>)
-            return "Short_1M_8S";
-        else if constexpr (std::is_same_v<T, Short_1M_17S>)
-            return "Short_1M_17S";
-        else if constexpr (std::is_same_v<T, Short_1M_1S>)
-            return "Short_1M_1S";
-        else if constexpr (std::is_same_v<T, Int_1M_8S>)
-            return "Int_1M_8S";
-        else if constexpr (std::is_same_v<T, Int_1M_67S>)
-            return "Int_1M_67S";
-        else if constexpr (std::is_same_v<T, Int_1M_1S>)
-            return "Int_1M_1S";
-        else if constexpr (std::is_same_v<T, Long_1M_8S>)
-            return "Long_1M_8S";
-        else if constexpr (std::is_same_v<T, Long_1M_13S>)
-            return "Long_1M_13S";
-        else if constexpr (std::is_same_v<T, Long_1M_1S>)
-            return "Long_1M_1S";
-        else if constexpr (std::is_same_v<T, Big_1K_8S>)
-            return "Big_1K_8S";
-        else if constexpr (std::is_same_v<T, Big_1K_41S>)
-            return "Big_1K_41S";
-        else if constexpr (std::is_same_v<T, Big_1K_1S>)
-            return "Big_1K_1S";
-        else if constexpr (std::is_same_v<T, Cache_1K_8S>)
-            return "Cache_1K_8S";
-        else if constexpr (std::is_same_v<T, Cache_1K_37S>)
-            return "Cache_1K_37S";
-        else if constexpr (std::is_same_v<T, Cache_1K_1S>)
-            return "Cache_1K_1S";
-        else if constexpr (std::is_same_v<T, Page_1K_8S>)
-            return "Page_1K_8S";
-        else if constexpr (std::is_same_v<T, Page_1K_5S>)
-            return "Page_1K_5S";
-        else if constexpr (std::is_same_v<T, Page_1K_1S>)
-            return "Page_1K_1S";
-        else
-        {
-            static_assert(dependent_false_v<T>, "Unexpected PoolAllocator typed-test parameter");
-            return {};
-        }
+        // clang-format off
+#define AEGIS_TEST_IF_NAME(Name)        if constexpr (std::is_same_v<T, Name>) return #Name;
+#define AEGIS_TEST_ELIF_NAME(Name) else if constexpr (std::is_same_v<T, Name>) return #Name;
+#define AEGIS_TEST_ELSE(Name)      else { static_assert(dependent_false_v<T>, "Unexpected PoolAllocator typed-test parameter"); return #Name; }
+        // clang-format on
+
+        AEGIS_TEST_IF_NAME(Byte_1M_8S_O)
+        AEGIS_TEST_ELIF_NAME(Byte_1M_8S_U)
+        AEGIS_TEST_ELIF_NAME(Byte_1M_3S_O)
+        AEGIS_TEST_ELIF_NAME(Byte_1M_3S_U)
+        AEGIS_TEST_ELIF_NAME(Byte_1M_1S_O)
+        AEGIS_TEST_ELIF_NAME(Byte_1M_1S_U)
+        AEGIS_TEST_ELIF_NAME(Byte_10k_2048S_O)
+        AEGIS_TEST_ELIF_NAME(Byte_10k_2048S_U)
+        AEGIS_TEST_ELIF_NAME(Short_1M_8S_O)
+        AEGIS_TEST_ELIF_NAME(Short_1M_8S_U)
+        AEGIS_TEST_ELIF_NAME(Short_1M_17S_O)
+        AEGIS_TEST_ELIF_NAME(Short_1M_17S_U)
+        AEGIS_TEST_ELIF_NAME(Short_1M_1S_O)
+        AEGIS_TEST_ELIF_NAME(Short_1M_1S_U)
+        AEGIS_TEST_ELIF_NAME(Int_1M_8S_O)
+        AEGIS_TEST_ELIF_NAME(Int_1M_8S_U)
+        AEGIS_TEST_ELIF_NAME(Int_1M_67S_O)
+        AEGIS_TEST_ELIF_NAME(Int_1M_67S_U)
+        AEGIS_TEST_ELIF_NAME(Int_1M_1S_O)
+        AEGIS_TEST_ELIF_NAME(Int_1M_1S_U)
+        AEGIS_TEST_ELIF_NAME(Long_1M_8S_O)
+        AEGIS_TEST_ELIF_NAME(Long_1M_8S_U)
+        AEGIS_TEST_ELIF_NAME(Long_1M_13S_O)
+        AEGIS_TEST_ELIF_NAME(Long_1M_13S_U)
+        AEGIS_TEST_ELIF_NAME(Long_1M_1S_O)
+        AEGIS_TEST_ELIF_NAME(Long_1M_1S_U)
+        AEGIS_TEST_ELIF_NAME(Big_1K_8S_O)
+        AEGIS_TEST_ELIF_NAME(Big_1K_8S_U)
+        AEGIS_TEST_ELIF_NAME(Big_1K_41S_O)
+        AEGIS_TEST_ELIF_NAME(Big_1K_41S_U)
+        AEGIS_TEST_ELIF_NAME(Big_1K_1S_O)
+        AEGIS_TEST_ELIF_NAME(Big_1K_1S_U)
+        AEGIS_TEST_ELIF_NAME(Cache_1K_8S_O)
+        AEGIS_TEST_ELIF_NAME(Cache_1K_8S_U)
+        AEGIS_TEST_ELIF_NAME(Cache_1K_37S_O)
+        AEGIS_TEST_ELIF_NAME(Cache_1K_37S_U)
+        AEGIS_TEST_ELIF_NAME(Cache_1K_1S_O)
+        AEGIS_TEST_ELIF_NAME(Cache_1K_1S_U)
+        AEGIS_TEST_ELIF_NAME(Page_1K_8S_O)
+        AEGIS_TEST_ELIF_NAME(Page_1K_8S_U)
+        AEGIS_TEST_ELIF_NAME(Page_1K_5S_O)
+        AEGIS_TEST_ELIF_NAME(Page_1K_5S_U)
+        AEGIS_TEST_ELIF_NAME(Page_1K_1S_O)
+        AEGIS_TEST_ELIF_NAME(Page_1K_1S_U)
+        AEGIS_TEST_ELSE(Unknown)
+
+#undef AEGIS_TEST_IF_NAME
+#undef AEGIS_TEST_ELIF_NAME
+#undef AEGIS_TEST_ELSE
     }
 };
 
@@ -120,10 +158,10 @@ TYPED_TEST_SUITE(PoolAllocatorTest, PoolAllocatorTestTypes, PoolAllocatorTypeNam
 
 TYPED_TEST(PoolAllocatorTest, FillDrainWithPeriodicReverseRelease)
 {
-    constexpr auto           iterations      = TypeParam::iterations;
-    constexpr auto           slots_per_arena = TypeParam::slots_per_arena;
-    PoolAllocator<TypeParam> allocator(slots_per_arena, 0);
-    std::vector<TypeParam *> prev_slots;
+    constexpr auto                                 iterations      = TypeParam::iterations;
+    constexpr auto                                 slots_per_arena = TypeParam::slots_per_arena;
+    typename TypeParam::allocator_t                allocator(slots_per_arena, 0);
+    std::vector<typename TypeParam::allocated_t *> prev_slots;
     for (auto i = 0ull; i < iterations; ++i)
     {
         auto slots = acquire_slots(allocator, slots_per_arena);
@@ -143,10 +181,10 @@ TYPED_TEST(PoolAllocatorTest, FillDrainWithPeriodicReverseRelease)
 
 TYPED_TEST(PoolAllocatorTest, AlternatingSingleSlot)
 {
-    constexpr auto           iterations      = TypeParam::iterations;
-    constexpr auto           slots_per_arena = TypeParam::slots_per_arena;
-    PoolAllocator<TypeParam> allocator(slots_per_arena, 0);
-    TypeParam               *expectedSlot{};
+    constexpr auto                   iterations      = TypeParam::iterations;
+    constexpr auto                   slots_per_arena = TypeParam::slots_per_arena;
+    typename TypeParam::allocator_t  allocator(slots_per_arena, 0);
+    typename TypeParam::allocated_t *expectedSlot{};
     for (auto i = 0ull; i < iterations; ++i)
     {
         auto slot = allocator.acquire();
@@ -162,10 +200,10 @@ TYPED_TEST(PoolAllocatorTest, AlternatingSingleSlot)
 
 TYPED_TEST(PoolAllocatorTest, RandomAcquireRelease)
 {
-    constexpr auto           iterations      = TypeParam::iterations;
-    constexpr auto           slots_per_arena = TypeParam::slots_per_arena;
-    PoolAllocator<TypeParam> allocator(slots_per_arena, 0);
-    std::vector<TypeParam *> slots;
+    constexpr auto                                 iterations      = TypeParam::iterations;
+    constexpr auto                                 slots_per_arena = TypeParam::slots_per_arena;
+    typename TypeParam::allocator_t                allocator(slots_per_arena, 0);
+    std::vector<typename TypeParam::allocated_t *> slots;
 
     std::random_device rd;
     std::mt19937       gen(rd());
@@ -207,10 +245,10 @@ TYPED_TEST(PoolAllocatorTest, RandomAcquireRelease)
 
 TYPED_TEST(PoolAllocatorTest, AlmostFullAcquireRelease)
 {
-    constexpr auto           iterations      = TypeParam::iterations;
-    constexpr auto           slots_per_arena = TypeParam::slots_per_arena;
-    PoolAllocator<TypeParam> allocator(slots_per_arena, 0);
-    auto                     slots = acquire_slots(allocator, slots_per_arena - 1);
+    constexpr auto                  iterations      = TypeParam::iterations;
+    constexpr auto                  slots_per_arena = TypeParam::slots_per_arena;
+    typename TypeParam::allocator_t allocator(slots_per_arena, 0);
+    auto                            slots = acquire_slots(allocator, slots_per_arena - 1);
 
     std::random_device rd;
     std::mt19937       gen(rd());
@@ -234,12 +272,12 @@ TYPED_TEST(PoolAllocatorTest, AlmostFullAcquireRelease)
 
 TYPED_TEST(PoolAllocatorTest, KeepAllocatorBetween40And60Capacity)
 {
-    constexpr auto           iterations      = TypeParam::iterations;
-    constexpr auto           slots_per_arena = TypeParam::slots_per_arena;
-    PoolAllocator<TypeParam> allocator(slots_per_arena, 4);
-    std::vector<TypeParam *> slots;
-    std::random_device       rd;
-    std::mt19937             gen(rd());
+    constexpr auto                                 iterations      = TypeParam::iterations;
+    constexpr auto                                 slots_per_arena = TypeParam::slots_per_arena;
+    typename TypeParam::allocator_t                allocator(slots_per_arena, 4);
+    std::vector<typename TypeParam::allocated_t *> slots;
+    std::random_device                             rd;
+    std::mt19937                                   gen(rd());
 
     auto pop_random_slot = [&] {
         auto const pos  = std::uniform_int_distribution<std::size_t>{0, slots.size() - 1}(gen);
@@ -287,12 +325,12 @@ TYPED_TEST(PoolAllocatorTest, KeepAllocatorBetween40And60Capacity)
 
 TYPED_TEST(PoolAllocatorTest, MultipleReleaseStrategies)
 {
-    constexpr auto           iterations      = TypeParam::iterations;
-    constexpr auto           slots_per_arena = TypeParam::slots_per_arena;
-    PoolAllocator<TypeParam> allocator(slots_per_arena, 4);
-    std::vector<TypeParam *> slots;
-    std::random_device       rd;
-    std::mt19937             gen(rd());
+    constexpr auto                                 iterations      = TypeParam::iterations;
+    constexpr auto                                 slots_per_arena = TypeParam::slots_per_arena;
+    typename TypeParam::allocator_t                allocator(slots_per_arena, 4);
+    std::vector<typename TypeParam::allocated_t *> slots;
+    std::random_device                             rd;
+    std::mt19937                                   gen(rd());
 
     auto pop_random_slot = [&] {
         auto const pos  = std::uniform_int_distribution<std::size_t>{0, slots.size() - 1}(gen);
@@ -329,5 +367,4 @@ TYPED_TEST(PoolAllocatorTest, MultipleReleaseStrategies)
         expect_allocator_valid(allocator);
     }
 }
-
 } // namespace

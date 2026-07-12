@@ -11,6 +11,10 @@ add_library(aegis_build_default INTERFACE)
 add_library(aegis::build_default ALIAS aegis_build_default)
 target_compile_features(aegis_build_default INTERFACE cxx_std_23)
 
+if(CMAKE_BUILD_TYPE STREQUAL Debug)
+    target_compile_definitions(aegis_build_default INTERFACE AEGIS_BUILD_HARDENED)
+endif()
+
 if(BUILD_TESTING)
     target_compile_definitions(aegis_build_default INTERFACE AEGIS_BUILD_TEST)
 endif()
@@ -43,6 +47,9 @@ if(WIN32)
         $<$<CONFIG:Debug>:/RTCsu>
         $<$<CONFIG:Release>:/guard:cf>
     )
+    if(BUILD_TESTING)
+        target_compile_options(aegis_build_default INTERFACE /bigobj)
+    endif()
 else()
     target_compile_definitions(aegis_build_default INTERFACE
         AEGIS_TARGET_LINUX

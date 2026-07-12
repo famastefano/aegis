@@ -16,7 +16,7 @@ namespace
 {
 using aegis::allocators::PoolAllocator;
 
-template <typename T> std::vector<T *> acquire_slots(PoolAllocator<T> &allocator, std::size_t count)
+template <typename T, typename P> std::vector<T *> acquire_slots(PoolAllocator<T, P> &allocator, std::size_t count)
 {
     std::vector<T *> slots(count);
 
@@ -26,7 +26,7 @@ template <typename T> std::vector<T *> acquire_slots(PoolAllocator<T> &allocator
     return slots;
 }
 
-template <typename T> void release_slots(PoolAllocator<T> &allocator, std::vector<T *> const &slots)
+template <typename T, typename P> void release_slots(PoolAllocator<T, P> &allocator, std::vector<T *> const &slots)
 {
     for (auto *slot : slots)
     {
@@ -35,7 +35,7 @@ template <typename T> void release_slots(PoolAllocator<T> &allocator, std::vecto
     }
 }
 
-template <typename T> void release_slots_reversed(PoolAllocator<T> &allocator, std::vector<T *> const &slots)
+template <typename T, typename P> void release_slots_reversed(PoolAllocator<T, P> &allocator, std::vector<T *> const &slots)
 {
     for (auto slot = slots.rbegin(); slot != slots.rend(); ++slot)
     {
@@ -86,6 +86,6 @@ void expect_same_pointer_set(std::vector<T *> const &expected_slots, std::vector
     EXPECT_EQ(expected_set, actual_set);
 }
 
-template <typename T> void expect_allocator_valid(PoolAllocator<T> const &allocator)
+template <typename T, typename P> void expect_allocator_valid(PoolAllocator<T, P> const &allocator)
 { EXPECT_TRUE(allocator.debug_validate()); }
 } // namespace
