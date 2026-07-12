@@ -118,7 +118,6 @@ struct PoolAllocatorTypeNames
 
 TYPED_TEST_SUITE(PoolAllocatorTest, PoolAllocatorTestTypes, PoolAllocatorTypeNames);
 
-/*
 TYPED_TEST(PoolAllocatorTest, FillDrainWithPeriodicReverseRelease)
 {
     constexpr auto           iterations      = TypeParam::iterations;
@@ -285,7 +284,7 @@ TYPED_TEST(PoolAllocatorTest, KeepAllocatorBetween40And60Capacity)
         phase = next_phase(phase);
     }
 }
-*/
+
 TYPED_TEST(PoolAllocatorTest, MultipleReleaseStrategies)
 {
     constexpr auto           iterations      = TypeParam::iterations;
@@ -330,18 +329,5 @@ TYPED_TEST(PoolAllocatorTest, MultipleReleaseStrategies)
         expect_allocator_valid(allocator);
     }
 }
-
-/*
-8. **Multi-arena stress**
-
-If your allocator supports multiple arenas or growth:
-
-```text
-allocate more than one arena worth
-release mixed pointers from different arenas
-allocate again
-verify pointers belong to valid arenas
-```
-*/
 
 } // namespace
