@@ -51,6 +51,15 @@ template <typename T> struct PoolAllocatorTraits
     static constexpr std::size_t alignment()
     { return std::max(alignof(T), alignof(free_slot_t)); }
 
+    static constexpr std::size_t allocated_type_size()
+    { return sizeof(T); }
+
+    static constexpr std::size_t free_list_ptr_size()
+    { return sizeof(free_slot_t); }
+
+    static constexpr std::size_t aligned_slot_size()
+    { return sizeof(slot_type_t); }
+
     static constexpr std::size_t slot_size()
     {
         if constexpr (sizeof(slot_type_t) % alignment() == 0)
@@ -115,9 +124,11 @@ template <typename T> class PoolAllocator
     {
         if (free_list_head_)
         {
-            ASAN_UNPOISON_MEMORY_REGION(free_list_head_, traits_t::slot_size());
+            ASAN_UNPOISON_MEMORY_REGION(free_list_head_, traits_t::aligned_slot_size());
             auto slot       = free_list_head_;
             free_list_head_ = *traits_t::as_ptr(free_list_head_);
+            ASAN_POISON_MEMORY_REGION(slot, traits_t::aligned_slot_size());
+            ASAN_UNPOISON_MEMORY_REGION(free_list_head_, traits_t::allocated_type_size());
             return std::launder(reinterpret_cast<T *>(slot));
         }
 
@@ -135,9 +146,10 @@ template <typename T> class PoolAllocator
 
         if (!free_list_head_)
         {
+            ASAN_UNPOISON_MEMORY_REGION(p, traits_t::aligned_slot_size());
             free_list_head_                    = reinterpret_cast<typename traits_t::free_slot_t>(p);
             *traits_t::as_ptr(free_list_head_) = nullptr;
-            ASAN_POISON_MEMORY_REGION(free_list_head_, traits_t::slot_size());
+            ASAN_POISON_MEMORY_REGION(free_list_head_, traits_t::aligned_slot_size());
             return;
         }
 
@@ -146,12 +158,12 @@ template <typename T> class PoolAllocator
         typename traits_t::free_slot_t curr_slot = free_list_head_;
         while (curr_slot)
         {
-            ASAN_UNPOISON_MEMORY_REGION(curr_slot, traits_t::slot_size());
+            ASAN_UNPOISON_MEMORY_REGION(curr_slot, traits_t::aligned_slot_size());
             auto next_slot = traits_t::next(curr_slot);
             // Double-free prevention
             if (p_slot == curr_slot || p_slot == next_slot)
             {
-                ASAN_POISON_MEMORY_REGION(curr_slot, traits_t::slot_size());
+                ASAN_POISON_MEMORY_REGION(curr_slot, traits_t::aligned_slot_size());
                 return;
             }
 
@@ -159,40 +171,40 @@ template <typename T> class PoolAllocator
             {
                 if (prev_slot)
                 {
-                    ASAN_UNPOISON_MEMORY_REGION(prev_slot, traits_t::slot_size());
+                    ASAN_UNPOISON_MEMORY_REGION(prev_slot, traits_t::aligned_slot_size());
                     *traits_t::as_ptr(prev_slot) = p_slot;
-                    ASAN_POISON_MEMORY_REGION(prev_slot, traits_t::slot_size());
+                    ASAN_POISON_MEMORY_REGION(prev_slot, traits_t::aligned_slot_size());
                 }
                 else
                 {
                     free_list_head_ = p_slot;
                 }
-                ASAN_UNPOISON_MEMORY_REGION(p_slot, traits_t::slot_size());
+                ASAN_UNPOISON_MEMORY_REGION(p_slot, traits_t::aligned_slot_size());
                 *traits_t::as_ptr(p_slot) = curr_slot;
-                ASAN_POISON_MEMORY_REGION(p_slot, traits_t::slot_size());
+                ASAN_POISON_MEMORY_REGION(p_slot, traits_t::aligned_slot_size());
                 return;
             }
             else if (curr_slot < p_slot && p_slot < next_slot)
             {
-                ASAN_UNPOISON_MEMORY_REGION(curr_slot, traits_t::slot_size());
-                ASAN_UNPOISON_MEMORY_REGION(p_slot, traits_t::slot_size());
+                ASAN_UNPOISON_MEMORY_REGION(curr_slot, traits_t::aligned_slot_size());
+                ASAN_UNPOISON_MEMORY_REGION(p_slot, traits_t::aligned_slot_size());
                 *traits_t::as_ptr(curr_slot) = p_slot;
                 *traits_t::as_ptr(p_slot)    = next_slot;
-                ASAN_POISON_MEMORY_REGION(curr_slot, traits_t::slot_size());
-                ASAN_POISON_MEMORY_REGION(p_slot, traits_t::slot_size());
+                ASAN_POISON_MEMORY_REGION(curr_slot, traits_t::aligned_slot_size());
+                ASAN_POISON_MEMORY_REGION(p_slot, traits_t::aligned_slot_size());
                 return;
             }
             else if (!next_slot)
             {
-                ASAN_UNPOISON_MEMORY_REGION(curr_slot, traits_t::slot_size());
-                ASAN_UNPOISON_MEMORY_REGION(p_slot, traits_t::slot_size());
+                ASAN_UNPOISON_MEMORY_REGION(curr_slot, traits_t::aligned_slot_size());
+                ASAN_UNPOISON_MEMORY_REGION(p_slot, traits_t::aligned_slot_size());
                 *traits_t::as_ptr(curr_slot) = p_slot;
                 *traits_t::as_ptr(p_slot)    = nullptr;
-                ASAN_POISON_MEMORY_REGION(curr_slot, traits_t::slot_size());
-                ASAN_POISON_MEMORY_REGION(p_slot, traits_t::slot_size());
+                ASAN_POISON_MEMORY_REGION(curr_slot, traits_t::aligned_slot_size());
+                ASAN_POISON_MEMORY_REGION(p_slot, traits_t::aligned_slot_size());
                 return;
             }
-            ASAN_POISON_MEMORY_REGION(curr_slot, traits_t::slot_size());
+            ASAN_POISON_MEMORY_REGION(curr_slot, traits_t::aligned_slot_size());
 
             prev_slot = curr_slot;
             curr_slot = next_slot;
@@ -220,9 +232,9 @@ template <typename T> class PoolAllocator
 
             traversed_slots.emplace_hint(traversed_slots.end(), slot);
 
-            ASAN_UNPOISON_MEMORY_REGION(slot, traits_t::slot_size());
+            ASAN_UNPOISON_MEMORY_REGION(slot, traits_t::aligned_slot_size());
             slot = *traits_t::as_ptr(slot);
-            ASAN_POISON_MEMORY_REGION(slot, traits_t::slot_size());
+            ASAN_POISON_MEMORY_REGION(slot, traits_t::aligned_slot_size());
         }
         return true;
     }
@@ -243,9 +255,9 @@ template <typename T> class PoolAllocator
             ++free_slots;
         while (slot)
         {
-            ASAN_UNPOISON_MEMORY_REGION(slot, traits_t::slot_size());
+            ASAN_UNPOISON_MEMORY_REGION(slot, traits_t::aligned_slot_size());
             slot = *traits_t::as_ptr(slot);
-            ASAN_POISON_MEMORY_REGION(slot, traits_t::slot_size());
+            ASAN_POISON_MEMORY_REGION(slot, traits_t::aligned_slot_size());
             ++free_slots;
         }
         return 1.0f - float(free_slots) / allocated_slots;
@@ -279,15 +291,15 @@ template <typename T> class PoolAllocator
         for (std::size_t slot_num = 0; slot_num < slots_per_arena_; ++slot_num)
         {
             auto slot = traits_t::from_pos(arena, slot_num);
-            ASAN_UNPOISON_MEMORY_REGION(slot, traits_t::slot_size());
+            ASAN_UNPOISON_MEMORY_REGION(slot, traits_t::aligned_slot_size());
             auto next               = traits_t::from_pos(arena, slot_num + 1);
             *traits_t::as_ptr(slot) = next;
-            ASAN_POISON_MEMORY_REGION(slot, traits_t::slot_size());
+            ASAN_POISON_MEMORY_REGION(slot, traits_t::aligned_slot_size());
         }
         auto tail = traits_t::as_ptr(traits_t::from_pos(arena, slots_per_arena_ - 1));
-        ASAN_UNPOISON_MEMORY_REGION(tail, traits_t::slot_size());
+        ASAN_UNPOISON_MEMORY_REGION(tail, traits_t::aligned_slot_size());
         *tail = nullptr;
-        ASAN_POISON_MEMORY_REGION(tail, traits_t::slot_size());
+        ASAN_POISON_MEMORY_REGION(tail, traits_t::aligned_slot_size());
     }
 
     void init_free_list()
@@ -298,12 +310,12 @@ template <typename T> class PoolAllocator
             init_free_list(curr_arena);
 
             auto tail = traits_t::as_ptr(traits_t::from_pos(curr_arena, slots_per_arena_ - 1));
-            ASAN_UNPOISON_MEMORY_REGION(tail, traits_t::slot_size());
+            ASAN_UNPOISON_MEMORY_REGION(tail, traits_t::aligned_slot_size());
             if (i + 1 < arenas_.size())
                 *tail = traits_t::from_pos(arenas_[i + 1], 0);
             else
                 *tail = nullptr;
-            ASAN_POISON_MEMORY_REGION(tail, traits_t::slot_size());
+            ASAN_POISON_MEMORY_REGION(tail, traits_t::aligned_slot_size());
         }
 
         if (!arenas_.empty())
