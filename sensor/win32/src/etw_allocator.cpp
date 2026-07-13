@@ -20,6 +20,7 @@ snapshot_ptr_t make_snapshot()
 
 void delete_snapshot(EventRecordSnapshot *p)
 {
+    p->~EventRecordSnapshot();
     std::lock_guard lck{snapshot_mutex};
     snapshot_allocator.release(p);
 }
