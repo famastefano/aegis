@@ -4,10 +4,12 @@
 #include <iostream>
 #include <sstream>
 
-namespace aegis::sensor::win32::etw {
-namespace {
+namespace aegis::sensor::win32::etw
+{
+namespace
+{
 
-[[nodiscard]] std::string format_guid(const GUID& guid)
+[[nodiscard]] std::string format_guid(const GUID &guid)
 {
     std::ostringstream output;
     output << std::hex << std::setfill('0') << std::nouppercase;
@@ -16,7 +18,8 @@ namespace {
     output << std::setw(4) << guid.Data3 << '-';
     output << std::setw(2) << static_cast<unsigned int>(guid.Data4[0]);
     output << std::setw(2) << static_cast<unsigned int>(guid.Data4[1]) << '-';
-    for (auto index = 2; index < 8; ++index) {
+    for (auto index = 2; index < 8; ++index)
+    {
         output << std::setw(2) << static_cast<unsigned int>(guid.Data4[index]);
     }
     output << '}';
@@ -25,25 +28,25 @@ namespace {
 
 } // namespace
 
-StdoutEventSink::StdoutEventSink(std::ostream& output) noexcept
-    : output_(&output)
+StdoutEventSink::StdoutEventSink(std::ostream &output) noexcept : output_(&output)
 {
 }
 
-void StdoutEventSink::on_event(const EventRecordSnapshot& event) noexcept
+void StdoutEventSink::consume_event(snapshot_ptr_t &&event) noexcept
 {
-    /*try {
+    try
+    {
         std::lock_guard lock{output_mutex_};
-        (*output_) << "provider=" << format_guid(event.ev.EventHeader.ProviderId)
-                   << " pid=" << event.ev.EventHeader.ProcessId
-                   << " tid=" << event.ev.EventHeader.ThreadId
-                   << " level=" << static_cast<unsigned int>(event.ev.EventHeader.EventDescriptor.Level)
-                   << " opcode=" << static_cast<unsigned int>(event.ev.EventHeader.EventDescriptor.Opcode)
-                   << " event_id=" << event.ev.EventHeader.EventDescriptor.Id
-                   << " version=" << static_cast<unsigned int>(event.ev.EventHeader.EventDescriptor.Version)
-                   << '\n';
-    } catch (...) {
-    }*/
+        (*output_) << "provider=" << event->header.provider_id << " pid=" << event->header.process_id
+                   << " tid=" << event->header.thread_id
+                   << " level=" << static_cast<unsigned int>(event->header.ev_descriptor.Level)
+                   << " opcode=" << static_cast<unsigned int>(event->header.ev_descriptor.Opcode)
+                   << " event_id=" << event->header.ev_descriptor.Id
+                   << " version=" << static_cast<unsigned int>(event->header.ev_descriptor.Version) << '\n';
+    }
+    catch (...)
+    {
+    }
 }
 
 } // namespace aegis::sensor::win32::etw

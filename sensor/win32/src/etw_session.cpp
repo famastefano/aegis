@@ -163,7 +163,7 @@ void EtwSession::handle_event(const EVENT_RECORD &record) noexcept
 {
     try
     {
-        sink_.on_event(make_event_record_snapshot(record));
+        sink_.consume_event(make_event_record_snapshot(record));
     }
     catch (...)
     {

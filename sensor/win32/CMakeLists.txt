@@ -5,6 +5,7 @@ add_library(aegis_sensor_win32_core STATIC
     src/provider_registry.cpp
     src/self_test_provider.cpp
     src/stdout_event_sink.cpp
+    src/etw_allocator.cpp
 )
 target_include_directories(aegis_sensor_win32_core PUBLIC include)
 target_link_libraries(aegis_sensor_win32_core

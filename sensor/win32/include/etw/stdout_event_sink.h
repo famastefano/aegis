@@ -11,7 +11,7 @@ class StdoutEventSink final : public IRawEventSink {
 public:
     explicit StdoutEventSink(std::ostream& output) noexcept;
 
-    void on_event(const EventRecordSnapshot& event) noexcept override;
+    void consume_event(snapshot_ptr_t&& event) noexcept override;
 
 private:
     std::ostream* output_;

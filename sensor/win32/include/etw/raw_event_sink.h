@@ -8,7 +8,7 @@ class IRawEventSink {
 public:
     virtual ~IRawEventSink() = default;
 
-    virtual void on_event(const EventRecordSnapshot& event) noexcept = 0;
+    virtual void consume_event(snapshot_ptr_t&& event) noexcept = 0;
 };
 
 } // namespace aegis::sensor::win32::etw
