@@ -6,6 +6,16 @@ project(
     LANGUAGES CXX
 )
 
+# 3rd-Party Deps
+add_subdirectory(thirdparty/concurrentqueue)
+add_subdirectory(thirdparty/googletest)
+
+include(GenerateExportHeader)
+include(CTest)
+
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_VISIBILITY_INLINES_HIDDEN TRUE)
+
 # Build Presets
 add_library(aegis_build_default INTERFACE)
 add_library(aegis::build_default ALIAS aegis_build_default)
@@ -91,12 +101,6 @@ else()
         )
     endif()
 endif()
-
-# 3rd-Party Deps
-add_subdirectory(thirdparty/concurrentqueue)
-add_subdirectory(thirdparty/googletest)
-
-include(CTest)
 
 # Generic code usable by any aegis module
 add_subdirectory(common)

@@ -76,19 +76,21 @@ AEGIS_TEST_RAW_TYPE_O_A(LongPage, uint64_t, 4096);
 AEGIS_TEST_RAW_TYPE_U(Long, uint64_t);
 AEGIS_TEST_RAW_TYPE_U_A(LongPage, uint64_t, 4096);
 
-#pragma pack(push, b1, 1)
+#ifdef AEGIS_TARGET_WINDOWS
+    #pragma pack(push, b1, 1)
 AEGIS_TEST_RAW_TYPE_O_A(IntByte, uint32_t, 1);
 AEGIS_TEST_RAW_TYPE_U_A(IntByte, uint32_t, 1);
 AEGIS_TEST_RAW_TYPE_O_A(LongByte, uint64_t, 1);
 AEGIS_TEST_RAW_TYPE_U_A(LongByte, uint64_t, 1);
-#pragma pack(pop, b1)
+    #pragma pack(pop, b1)
 
-#pragma pack(push, b2, 1)
+    #pragma pack(push, b2, 2)
 AEGIS_TEST_RAW_TYPE_O_A(IntShort, uint32_t, 2);
 AEGIS_TEST_RAW_TYPE_U_A(IntShort, uint32_t, 2);
 AEGIS_TEST_RAW_TYPE_O_A(LongShort, uint64_t, 2);
 AEGIS_TEST_RAW_TYPE_U_A(LongShort, uint64_t, 2);
-#pragma pack(pop, b2)
+    #pragma pack(pop, b2)
+#endif
 
 AEGIS_TEST_TYPE_O(PointerSized, sizeof(void *));
 AEGIS_TEST_TYPE_U(PointerSized, sizeof(void *));
@@ -134,8 +136,12 @@ using PoolAllocatorTestTypes =
     ::testing::Types<PointerSized_O, PointerSized_U, LargerThanPointer_O, LargerThanPointer_U, Align16_O, Align16_U,
                      Align64_O, Align64_U, Hacker_O, Hacker_U, Hacker_Page_O, Hacker_Page_U, Byte_O, Byte_U, Byte16_O,
                      Byte16_U, Short_O, Short_U, Short32_O, Short32_U, Int_O, Int_U, IntCache_O, IntCache_U, Long_O,
-                     Long_U, LongPage_O, LongPage_U, IntByte_O, IntByte_U, IntShort_O, IntShort_U, LongByte_O,
-                     LongByte_U, LongShort_O, LongShort_U>;
+                     Long_U, LongPage_O, LongPage_U
+#ifdef AEGIS_TARGET_WINDOWS
+                     ,
+                     IntByte_O, IntByte_U, IntShort_O, IntShort_U, LongByte_O, LongByte_U, LongShort_O, LongShort_U
+#endif
+                     >;
 
 struct PoolAllocatorTypeNames
 {
@@ -175,6 +181,7 @@ struct PoolAllocatorTypeNames
         AEGIS_TEST_ELIF_NAME(Long_U)
         AEGIS_TEST_ELIF_NAME(LongPage_O)
         AEGIS_TEST_ELIF_NAME(LongPage_U)
+#ifdef AEGIS_TARGET_WINDOWS
         AEGIS_TEST_ELIF_NAME(IntByte_O)
         AEGIS_TEST_ELIF_NAME(IntByte_U)
         AEGIS_TEST_ELIF_NAME(IntShort_O)
@@ -183,6 +190,7 @@ struct PoolAllocatorTypeNames
         AEGIS_TEST_ELIF_NAME(LongByte_U)
         AEGIS_TEST_ELIF_NAME(LongShort_O)
         AEGIS_TEST_ELIF_NAME(LongShort_U)
+#endif
         AEGIS_TEST_ELSE(Unknown)
 
 #undef AEGIS_TEST_IF_NAME

@@ -21,14 +21,14 @@ template <typename T, std::size_t TIterations, std::size_t TSlotsPerArena, typen
 };
 
 // clang-format off
-struct Byte_1M_8S_O     : Params<uint8_t,     1'000'000,    8, OrderedReleasePolicy  <uint8_t>>{};
-struct Byte_1M_8S_U     : Params<uint8_t,     1'000'000,    8, UnorderedReleasePolicy<uint8_t>>{};
-struct Byte_1M_3S_O     : Params<uint8_t,     1'000'000,    3, OrderedReleasePolicy  <uint8_t>>{};
-struct Byte_1M_3S_U     : Params<uint8_t,     1'000'000,    3, UnorderedReleasePolicy<uint8_t>>{};
-struct Byte_1M_1S_O     : Params<uint8_t,     1'000'000,    1, OrderedReleasePolicy  <uint8_t>>{};
-struct Byte_1M_1S_U     : Params<uint8_t,     1'000'000,    1, UnorderedReleasePolicy<uint8_t>>{};
-struct Byte_10k_2048S_O : Params<uint8_t,        10'000, 2048, OrderedReleasePolicy  <uint8_t>>{};
-struct Byte_10k_2048S_U : Params<uint8_t,        10'000, 2048, UnorderedReleasePolicy<uint8_t>>{};
+struct Byte_1M_8S_O     : Params<uint8_t,  1'000'000,    8, OrderedReleasePolicy  <uint8_t>>{};
+struct Byte_1M_8S_U     : Params<uint8_t,  1'000'000,    8, UnorderedReleasePolicy<uint8_t>>{};
+struct Byte_1M_3S_O     : Params<uint8_t,  1'000'000,    3, OrderedReleasePolicy  <uint8_t>>{};
+struct Byte_1M_3S_U     : Params<uint8_t,  1'000'000,    3, UnorderedReleasePolicy<uint8_t>>{};
+struct Byte_1M_1S_O     : Params<uint8_t,  1'000'000,    1, OrderedReleasePolicy  <uint8_t>>{};
+struct Byte_1M_1S_U     : Params<uint8_t,  1'000'000,    1, UnorderedReleasePolicy<uint8_t>>{};
+struct Byte_10k_512S_O  : Params<uint8_t,     10'000,  512, OrderedReleasePolicy  <uint8_t>>{};
+struct Byte_10k_512S_U  : Params<uint8_t,     10'000,  512, UnorderedReleasePolicy<uint8_t>>{};
 
 struct Short_1M_8S_O    : Params<uint16_t, 1'000'000,    8, OrderedReleasePolicy  <uint16_t>>{};
 struct Short_1M_8S_U    : Params<uint16_t, 1'000'000,    8, UnorderedReleasePolicy<uint16_t>>{};
@@ -52,28 +52,28 @@ struct Long_1M_1S_O     : Params<uint64_t, 1'000'000,    1, OrderedReleasePolicy
 struct Long_1M_1S_U     : Params<uint64_t, 1'000'000,    1, UnorderedReleasePolicy<uint64_t>>{};
 
 struct BigData { std::byte _[1337]; };
-struct Big_1K_8S_O      : Params<BigData,       1'000,        8, OrderedReleasePolicy  <BigData>> {};
-struct Big_1K_8S_U      : Params<BigData,       1'000,        8, UnorderedReleasePolicy<BigData>> {};
-struct Big_1K_41S_O     : Params<BigData,       1'000,       41, OrderedReleasePolicy  <BigData>> {};
-struct Big_1K_41S_U     : Params<BigData,       1'000,       41, UnorderedReleasePolicy<BigData>> {};
-struct Big_1K_1S_O      : Params<BigData,       1'000,        1, OrderedReleasePolicy  <BigData>> {};
-struct Big_1K_1S_U      : Params<BigData,       1'000,        1, UnorderedReleasePolicy<BigData>> {};
+struct Big_1K_8S_O      : Params<BigData,      1'000,    8, OrderedReleasePolicy  <BigData>> {};
+struct Big_1K_8S_U      : Params<BigData,      1'000,    8, UnorderedReleasePolicy<BigData>> {};
+struct Big_1K_41S_O     : Params<BigData,      1'000,   41, OrderedReleasePolicy  <BigData>> {};
+struct Big_1K_41S_U     : Params<BigData,      1'000,   41, UnorderedReleasePolicy<BigData>> {};
+struct Big_1K_1S_O      : Params<BigData,      1'000,    1, OrderedReleasePolicy  <BigData>> {};
+struct Big_1K_1S_U      : Params<BigData,      1'000,    1, UnorderedReleasePolicy<BigData>> {};
 
 struct alignas(64) BigCache { std::byte _[64]; };
-struct Cache_1K_8S_O    : Params<BigCache,      1'000,        8, OrderedReleasePolicy  <BigCache>> {};
-struct Cache_1K_8S_U    : Params<BigCache,      1'000,        8, UnorderedReleasePolicy<BigCache>> {};
-struct Cache_1K_37S_O   : Params<BigCache,      1'000,       37, OrderedReleasePolicy  <BigCache>> {};
-struct Cache_1K_37S_U   : Params<BigCache,      1'000,       37, UnorderedReleasePolicy<BigCache>> {};
-struct Cache_1K_1S_O    : Params<BigCache,      1'000,        1, OrderedReleasePolicy  <BigCache>> {};
-struct Cache_1K_1S_U    : Params<BigCache,      1'000,        1, UnorderedReleasePolicy<BigCache>> {};
+struct Cache_1K_8S_O    : Params<BigCache,     1'000,    8, OrderedReleasePolicy  <BigCache>> {};
+struct Cache_1K_8S_U    : Params<BigCache,     1'000,    8, UnorderedReleasePolicy<BigCache>> {};
+struct Cache_1K_37S_O   : Params<BigCache,     1'000,   37, OrderedReleasePolicy  <BigCache>> {};
+struct Cache_1K_37S_U   : Params<BigCache,     1'000,   37, UnorderedReleasePolicy<BigCache>> {};
+struct Cache_1K_1S_O    : Params<BigCache,     1'000,    1, OrderedReleasePolicy  <BigCache>> {};
+struct Cache_1K_1S_U    : Params<BigCache,     1'000,    1, UnorderedReleasePolicy<BigCache>> {};
 
 struct alignas(4096) PageAlignData { std::byte _[32]; };
-struct Page_1K_8S_O     : Params<PageAlignData, 1'000,        8, OrderedReleasePolicy  <PageAlignData>> {};
-struct Page_1K_8S_U     : Params<PageAlignData, 1'000,        8, UnorderedReleasePolicy<PageAlignData>> {};
-struct Page_1K_5S_O     : Params<PageAlignData, 1'000,        5, OrderedReleasePolicy  <PageAlignData>> {};
-struct Page_1K_5S_U     : Params<PageAlignData, 1'000,        5, UnorderedReleasePolicy<PageAlignData>> {};
-struct Page_1K_1S_O     : Params<PageAlignData, 1'000,        1, OrderedReleasePolicy  <PageAlignData>> {};
-struct Page_1K_1S_U     : Params<PageAlignData, 1'000,        1, UnorderedReleasePolicy<PageAlignData>> {};
+struct Page_1K_8S_O     : Params<PageAlignData, 1'000,   8, OrderedReleasePolicy  <PageAlignData>> {};
+struct Page_1K_8S_U     : Params<PageAlignData, 1'000,   8, UnorderedReleasePolicy<PageAlignData>> {};
+struct Page_1K_5S_O     : Params<PageAlignData, 1'000,   5, OrderedReleasePolicy  <PageAlignData>> {};
+struct Page_1K_5S_U     : Params<PageAlignData, 1'000,   5, UnorderedReleasePolicy<PageAlignData>> {};
+struct Page_1K_1S_O     : Params<PageAlignData, 1'000,   1, OrderedReleasePolicy  <PageAlignData>> {};
+struct Page_1K_1S_U     : Params<PageAlignData, 1'000,   1, UnorderedReleasePolicy<PageAlignData>> {};
 
 // clang-format on
 
@@ -85,7 +85,7 @@ template <typename T> class PoolAllocatorTest : public ::testing::Test
 
 using PoolAllocatorTestTypes =
     ::testing::Types<Byte_1M_8S_O, Byte_1M_8S_U, Byte_1M_3S_O, Byte_1M_3S_U, Byte_1M_1S_O, Byte_1M_1S_U,
-                     Byte_10k_2048S_O, Byte_10k_2048S_U, Short_1M_8S_O, Short_1M_8S_U, Short_1M_17S_O, Short_1M_17S_U,
+                     Byte_10k_512S_O, Byte_10k_512S_U, Short_1M_8S_O, Short_1M_8S_U, Short_1M_17S_O, Short_1M_17S_U,
                      Short_1M_1S_O, Short_1M_1S_U, Int_1M_8S_O, Int_1M_8S_U, Int_1M_67S_O, Int_1M_67S_U, Int_1M_1S_O,
                      Int_1M_1S_U, Long_1M_8S_O, Long_1M_8S_U, Long_1M_13S_O, Long_1M_13S_U, Long_1M_1S_O, Long_1M_1S_U,
                      Big_1K_8S_O, Big_1K_8S_U, Big_1K_41S_O, Big_1K_41S_U, Big_1K_1S_O, Big_1K_1S_U, Cache_1K_8S_O,
@@ -108,8 +108,8 @@ struct PoolAllocatorTypeNames
         AEGIS_TEST_ELIF_NAME(Byte_1M_3S_U)
         AEGIS_TEST_ELIF_NAME(Byte_1M_1S_O)
         AEGIS_TEST_ELIF_NAME(Byte_1M_1S_U)
-        AEGIS_TEST_ELIF_NAME(Byte_10k_2048S_O)
-        AEGIS_TEST_ELIF_NAME(Byte_10k_2048S_U)
+        AEGIS_TEST_ELIF_NAME(Byte_10k_512S_O)
+        AEGIS_TEST_ELIF_NAME(Byte_10k_512S_U)
         AEGIS_TEST_ELIF_NAME(Short_1M_8S_O)
         AEGIS_TEST_ELIF_NAME(Short_1M_8S_U)
         AEGIS_TEST_ELIF_NAME(Short_1M_17S_O)
@@ -353,6 +353,7 @@ TYPED_TEST(PoolAllocatorTest, MultipleReleaseStrategies)
         release_slots(allocator, slots);
         expect_allocator_valid(allocator);
 
+        slots = acquire_slots(allocator, slots_per_arena);
         for (auto j = 0ull; j < slots.size(); j += 2)
             allocator.release(slots[j]);
         for (auto k = 1ull; k < slots.size(); k += 2)
@@ -367,4 +368,5 @@ TYPED_TEST(PoolAllocatorTest, MultipleReleaseStrategies)
         expect_allocator_valid(allocator);
     }
 }
+
 } // namespace

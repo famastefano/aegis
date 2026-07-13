@@ -1,7 +1,8 @@
 #pragma once
 
+#include <aegis/debug/debug.h>
+
 #include <algorithm>
-#include <cassert>
 #include <cmath>
 #include <cstdint>
 #include <memory>
@@ -236,7 +237,7 @@ template <typename T, typename TReleasePolicy> class PoolAllocator
             return;
 
 #ifdef AEGIS_BUILD_HARDENED
-        assert(!debug_is_released(p));
+        aegis::debug::assert(!debug_is_released(p) && "Double-Free!!");
 #endif
 
         TReleasePolicy::release(p, free_list_head_);
