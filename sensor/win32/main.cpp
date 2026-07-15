@@ -1,11 +1,11 @@
 #include <etw/etw_session.h>
 #include <etw/event_sinks/stdout_event_sink.h>
 #include <etw/provider_registry.h>
-#include <etw/self_test_provider.h>
 
 #include <windows.h>
 
 #include <atomic>
+#include <charconv>
 #include <chrono>
 #include <exception>
 #include <iostream>
@@ -19,8 +19,6 @@ namespace
 
 using aegis::sensor::win32::etw::EtwProviderRegistry;
 using aegis::sensor::win32::etw::EtwSession;
-using aegis::sensor::win32::etw::ProviderSelection;
-using aegis::sensor::win32::etw::SelfTestProvider;
 using aegis::sensor::win32::etw::StdoutEventSink;
 
 std::atomic_bool stop_requested{false};
@@ -39,97 +37,77 @@ BOOL WINAPI console_control_handler(DWORD control_type) noexcept
 
 struct ProgramOptions
 {
-    unsigned int duration_seconds{10};
-    bool         enable_kernel_process{false};
-    bool         show_help{false};
+    unsigned int  duration_seconds{10};
+    bool          show_help{false};
+    bool          show_providers{false};
+    std::uint16_t provider_id = USHRT_MAX;
 };
 
 void print_usage(std::ostream &output)
 {
-    output << "Usage: aegis_sensor_win32 [--duration-seconds <seconds>] [--enable-kernel-process]\n"
-           << '\n'
-           << "Options:\n"
-           << "  --duration-seconds <seconds>  Runtime duration. Use 0 to run until Ctrl+C.\n"
-           << "  --enable-kernel-process       Enable Microsoft-Windows-Kernel-Process events.\n"
-           << "  --help                        Show this help text.\n";
+    output << "Usage: aegis_sensor_win32 [--help|-h] [--duration-seconds <secs>] [--show-providers] [--provider-id <id>]\n\n"
+              "Options:\n"
+              "  --help|-h                     Show this help text.\n"
+              "  --duration-seconds <seconds>  Runtime duration. Use 0 to run until Ctrl+C.\n"
+              "  --show-providers              Prints all the available providers found in the registry.\n"
+              "  --provider-id <id>            Enables the provider with ID <id>.\n"
+           << std::endl;
 }
 
-[[nodiscard]] unsigned int parse_duration(std::string_view value)
+template <typename TNumber>
+[[nodiscard]] void parse_number(TNumber &v, std::string_view value, TNumber range_min = std::numeric_limits<TNumber>::min(), TNumber range_max = std::numeric_limits<TNumber>::min(), bool clamp = false)
 {
-    std::string text{value};
-    std::size_t consumed{};
-    auto const  parsed = std::stoul(text, &consumed, 10);
-    if (consumed != text.size())
+    if (auto ec = std::from_chars(value.data(), value.data() + value.size(), v).ec; static_cast<bool>(ec))
     {
-        throw std::invalid_argument{"duration contains non-numeric characters"};
+        if (clamp || (range_min <= v && v <= range_max))
+        {
+            v = std::clamp(v, range_min, range_max);
+            return;
+        }
     }
-    if (parsed > static_cast<unsigned long>((std::numeric_limits<unsigned int>::max)()))
-    {
-        throw std::out_of_range{"duration is too large"};
-    }
-    return static_cast<unsigned int>(parsed);
+    throw std::invalid_argument{"Invalid number."};
 }
 
 [[nodiscard]] ProgramOptions parse_arguments(int argc, char **argv)
 {
     ProgramOptions options{};
-
     for (int index = 1; index < argc; ++index)
     {
+        bool const has_next = (index + 1) < argc;
+
         std::string_view const arg{argv[index]};
         if (arg == "--help" || arg == "-h")
         {
             options.show_help = true;
-            continue;
         }
-        if (arg == "--enable-kernel-process")
+        else if (arg == "--show-providers")
         {
-            options.enable_kernel_process = true;
-            continue;
+            options.show_providers = true;
         }
-        if (arg == "--duration-seconds")
+        else if (arg == "--duration-seconds")
         {
-            if ((index + 1) >= argc)
-            {
+            if (!has_next)
                 throw std::invalid_argument{"--duration-seconds requires a value"};
-            }
-            options.duration_seconds = parse_duration(argv[++index]);
-            continue;
+
+            parse_number(options.duration_seconds, argv[++index]);
         }
+        else if (arg == "--provider-id")
+        {
+            if (!has_next)
+                throw std::invalid_argument{"--provider-id requires a value"};
 
-        throw std::invalid_argument{"unknown argument: " + std::string{arg}};
+            parse_number(options.provider_id, argv[++index], std::uint16_t(0), std::uint16_t(USHRT_MAX - 1));
+        }
+        else
+        {
+            throw std::invalid_argument{"unknown argument: " + std::string{arg}};
+        }
     }
-
     return options;
 }
 
 [[nodiscard]] std::wstring make_session_name()
 { return L"AegisSensorWin32-" + std::to_wstring(GetCurrentProcessId()); }
-
-void run_self_test_loop(std::optional<SelfTestProvider> const &self_test_provider, unsigned int duration_seconds)
-{
-    auto const    start = std::chrono::steady_clock::now();
-    std::uint32_t sequence{};
-
-    while (!stop_requested.load())
-    {
-        if (self_test_provider.has_value())
-        {
-            static_cast<void>(self_test_provider->write_event(sequence++));
-        }
-
-        if (duration_seconds != 0)
-        {
-            auto const elapsed = std::chrono::steady_clock::now() - start;
-            if (elapsed >= std::chrono::seconds{duration_seconds})
-            {
-                break;
-            }
-        }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds{250});
-    }
-}
 
 } // namespace
 
@@ -144,26 +122,39 @@ int main(int argc, char **argv)
             return 0;
         }
 
+        auto &registry = EtwProviderRegistry::get_registry();
+        registry.discover_providers();
+
+        if (options.show_providers)
+        {
+            std::size_t const count = registry.get_providers_count();
+            for (std::size_t i = 0; i < count; ++i)
+            {
+                if (auto const info = registry.try_get_provider_info(i); info)
+                    std::wcout << "#" << i << " id(" << info->id_ << "): " << info->name_ << "\n";
+            }
+            return 0;
+        }
+
+        if (options.provider_id == USHRT_MAX)
+        {
+            print_usage(std::cout);
+            throw std::out_of_range("Invalid provider ID.");
+        }
+
         SetConsoleCtrlHandler(&console_control_handler, TRUE);
 
-        std::optional<SelfTestProvider> self_test_provider;
-        self_test_provider.emplace();
-
-        StdoutEventSink   sink{std::cout};
-        ProviderSelection provider_selection{};
-        provider_selection.enable_self_test      = true;
-        provider_selection.enable_kernel_process = options.enable_kernel_process;
+        StdoutEventSink sink{std::cout};
 
         EtwSession session{
             EtwSession::Config{
                                .session_name = make_session_name(),
-                               .providers    = EtwProviderRegistry::build(provider_selection),
+                               .providers    = {options.provider_id},
                                },
             sink,
         };
 
         session.start();
-        run_self_test_loop(self_test_provider, options.duration_seconds);
         session.stop();
         session.rethrow_consumer_error();
 

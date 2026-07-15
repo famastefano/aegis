@@ -3,7 +3,6 @@ add_library(aegis_sensor_win32_core STATIC
     src/etw_session.cpp
     src/event_record_snapshot.cpp
     src/provider_registry.cpp
-    src/self_test_provider.cpp
     src/event_sinks/stdout_event_sink.cpp
     src/event_sinks/pool_event_sink.cpp
     src/allocators/event_record_allocator.cpp
@@ -16,6 +15,7 @@ target_link_libraries(aegis_sensor_win32_core
         aegis::common
         thirdparty::concurrentqueue
         advapi32
+        Tdh
 )
 
 add_executable(aegis_sensor_win32 main.cpp)

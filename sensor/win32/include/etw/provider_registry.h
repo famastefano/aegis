@@ -12,6 +12,8 @@ namespace aegis::sensor::win32::etw
 class EtwProviderRegistry
 {
   public:
+    static EtwProviderRegistry &get_registry();
+
     inline static constexpr std::uint16_t SELF_TEST_PROVIDER_ID = 0;
 
     [[maybe_unused]] std::size_t discover_providers();
@@ -28,6 +30,8 @@ class EtwProviderRegistry
     std::optional<ProviderInfo> try_get_provider_info_by_id(std::uint16_t id) const;
 
   private:
+    EtwProviderRegistry() = default;
+
     _PROVIDER_ENUMERATION_INFO       *get_storage();
     _PROVIDER_ENUMERATION_INFO const *get_storage() const;
 

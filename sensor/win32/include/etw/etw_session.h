@@ -1,9 +1,8 @@
 #pragma once
 
-#include <etw/provider_registry.h>
+#include <Windows.h>
 
 #include <evntrace.h>
-#include <windows.h>
 
 #include <atomic>
 #include <exception>
@@ -23,8 +22,8 @@ class EtwSession final
   public:
     struct Config
     {
-        std::wstring                   session_name;
-        std::vector<EtwProviderConfig> providers;
+        std::wstring               session_name;
+        std::vector<std::uint16_t> providers;
     };
 
     EtwSession(Config config, IEtwEventSink &sink);

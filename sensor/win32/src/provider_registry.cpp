@@ -10,6 +10,12 @@
 
 namespace aegis::sensor::win32::etw
 {
+EtwProviderRegistry &EtwProviderRegistry::get_registry()
+{
+    static EtwProviderRegistry instance;
+    return instance;
+}
+
 std::size_t EtwProviderRegistry::discover_providers()
 {
     if (provider_storage_)

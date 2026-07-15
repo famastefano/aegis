@@ -2,6 +2,7 @@
 #include <etw/etw_session.h>
 #include <etw/event_record_snapshot.h>
 #include <etw/event_sinks/etw_event_sink.h>
+#include <etw/provider_registry.h>
 
 #include <evntcons.h>
 
@@ -35,6 +36,13 @@ void EtwSession::start()
     if (session_started_.load())
     {
         return;
+    }
+
+    auto const &registry = EtwProviderRegistry::get_registry();
+    for (std::uint16_t id : config_.providers)
+    {
+        if (!registry.try_get_provider_info_by_id(id))
+            throw std::runtime_error{"Couldn't find provider."};
     }
 
     auto       properties   = make_trace_properties(config_.session_name);
@@ -145,18 +153,17 @@ void EtwSession::consume_trace(std::promise<void> ready) noexcept
 
 void EtwSession::enable_providers() const
 {
-    for (auto const &provider : config_.providers)
+    auto const &registry = EtwProviderRegistry::get_registry();
+    for (std::uint16_t id : config_.providers)
     {
+        auto const info = registry.try_get_provider_info_by_id(id);
+
         ENABLE_TRACE_PARAMETERS parameters{};
         parameters.Version = ENABLE_TRACE_PARAMETERS_VERSION_2;
 
-        auto const status =
-            EnableTraceEx2(session_handle_, &provider.provider_id, EVENT_CONTROL_CODE_ENABLE_PROVIDER, provider.level,
-                           provider.match_any_keyword, provider.match_all_keyword, 0, &parameters);
+        auto const status = EnableTraceEx2(session_handle_, info->guid_, EVENT_CONTROL_CODE_ENABLE_PROVIDER, TRACE_LEVEL_INFORMATION, 0, 0, 0, &parameters);
         if (status != ERROR_SUCCESS)
-        {
             throw_win32_status(status, "EnableTraceEx2 failed for provider");
-        }
     }
 }
 
