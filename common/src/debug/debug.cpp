@@ -30,4 +30,28 @@ void assert(bool expr)
     }
     std::terminate();
 }
+
+bool is_admin()
+{
+#ifdef AEGIS_TARGET_WINDOWS
+    HANDLE token = nullptr;
+    OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token);
+
+    TOKEN_ELEVATION elevation{};
+    DWORD           size = 0;
+
+    GetTokenInformation(
+        token,
+        TokenElevation,
+        &elevation,
+        sizeof(elevation),
+        &size);
+
+    CloseHandle(token);
+
+    return elevation.TokenIsElevated != 0;
+#else
+    return false;
+#endif
+}
 } // namespace aegis::debug
