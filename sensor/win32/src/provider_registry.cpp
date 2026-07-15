@@ -1,48 +1,83 @@
+#include <aegis/debug/debug.h>
 #include <etw/provider_registry.h>
 
+#include <memory>
+
+#include <Windows.h>
+
 #include <evntrace.h>
+#include <tdh.h>
 
-namespace aegis::sensor::win32::etw {
-
-const GUID AegisSelfTestProviderGuid{
-    0x0f6d7603,
-    0x77b9,
-    0x46ed,
-    {0xa7, 0xd0, 0x04, 0xa8, 0x9d, 0x30, 0x11, 0x97},
-};
-
-const GUID MicrosoftWindowsKernelProcessProviderGuid{
-    0x22fb2cd6,
-    0x0e7b,
-    0x422b,
-    {0xa0, 0xc7, 0x2f, 0xad, 0x1f, 0xd0, 0xe7, 0x16},
-};
-
-std::vector<EtwProviderConfig> EtwProviderRegistry::build(ProviderSelection selection)
+namespace aegis::sensor::win32::etw
 {
-    std::vector<EtwProviderConfig> providers;
+std::size_t EtwProviderRegistry::discover_providers()
+{
+    if (provider_storage_)
+        return get_providers_count();
 
-    if (selection.enable_self_test) {
-        providers.push_back(EtwProviderConfig{
-            .provider_id = AegisSelfTestProviderGuid,
-            .name = L"Aegis-Sensor-Win32-SelfTest",
-            .level = TRACE_LEVEL_INFORMATION,
-            .match_any_keyword = 0,
-            .match_all_keyword = 0,
-        });
+    ULONG sz  = 0;
+    auto  ret = TdhEnumerateProviders(nullptr, &sz);
+    debug::assert(ret == ERROR_INSUFFICIENT_BUFFER);
+    if (ret == ERROR_INSUFFICIENT_BUFFER)
+    {
+        provider_storage_ = std::make_unique_for_overwrite<unsigned char[]>(sz);
+        auto *storage     = std::launder(reinterpret_cast<_PROVIDER_ENUMERATION_INFO *>(provider_storage_.get()));
+        ret               = TdhEnumerateProviders(storage, &sz);
+        debug::assert(ret == ERROR_SUCCESS);
+        if (ret != ERROR_SUCCESS)
+            provider_storage_.reset();
     }
 
-    if (selection.enable_kernel_process) {
-        providers.push_back(EtwProviderConfig{
-            .provider_id = MicrosoftWindowsKernelProcessProviderGuid,
-            .name = L"Microsoft-Windows-Kernel-Process",
-            .level = TRACE_LEVEL_INFORMATION,
-            .match_any_keyword = 0x10,
-            .match_all_keyword = 0,
-        });
+    return get_providers_count();
+}
+
+std::size_t EtwProviderRegistry::get_providers_count() const
+{
+    if (auto *storage = get_storage())
+        return storage->NumberOfProviders + 1ull;
+    return 0;
+}
+
+std::optional<EtwProviderRegistry::ProviderInfo> EtwProviderRegistry::try_get_provider_info(std::size_t pos) const
+{
+    if (pos == SELF_TEST_PROVIDER_ID)
+    {
+        static GUID null_guid{};
+        return ProviderInfo{
+            .name_ = L"AegisEtwSelfTestProvider",
+            .guid_ = &null_guid,
+            .id_   = SELF_TEST_PROVIDER_ID,
+        };
     }
 
-    return providers;
+    if (auto *storage = get_storage(); storage->NumberOfProviders + 1 < pos)
+    {
+        TRACE_PROVIDER_INFO const &provider = storage->TraceProviderInfoArray[pos - 1];
+        return ProviderInfo{
+            .name_ = std::wstring_view(
+                std::launder(reinterpret_cast<wchar_t const *>(provider_storage_.get() + provider.ProviderNameOffset))),
+            .guid_ = &provider.ProviderGuid,
+            .id_   = static_cast<std::uint16_t>(pos),
+        };
+    }
+    return {};
+}
+
+std::optional<EtwProviderRegistry::ProviderInfo> EtwProviderRegistry::try_get_provider_info_by_id(
+    std::uint16_t id) const
+{ return try_get_provider_info(id); }
+
+_PROVIDER_ENUMERATION_INFO *EtwProviderRegistry::get_storage()
+{
+    return provider_storage_ ? std::launder(reinterpret_cast<_PROVIDER_ENUMERATION_INFO *>(provider_storage_.get()))
+                             : nullptr;
+}
+
+_PROVIDER_ENUMERATION_INFO const *EtwProviderRegistry::get_storage() const
+{
+    return provider_storage_
+               ? std::launder(reinterpret_cast<_PROVIDER_ENUMERATION_INFO const *>(provider_storage_.get()))
+               : nullptr;
 }
 
 } // namespace aegis::sensor::win32::etw
