@@ -56,15 +56,10 @@ std::optional<EtwProviderRegistry::ProviderInfo> EtwProviderRegistry::try_get_pr
         };
     }
 
-    if (auto *storage = get_storage(); storage->NumberOfProviders + 1 < pos)
+    if (auto *storage = get_storage(); pos < storage->NumberOfProviders + 1)
     {
         TRACE_PROVIDER_INFO const &provider = storage->TraceProviderInfoArray[pos - 1];
-        return ProviderInfo{
-            .name_ = std::wstring_view(
-                std::launder(reinterpret_cast<wchar_t const *>(provider_storage_.get() + provider.ProviderNameOffset))),
-            .guid_ = &provider.ProviderGuid,
-            .id_   = static_cast<std::uint16_t>(pos),
-        };
+        return extract_info(provider, static_cast<std::uint16_t>(pos));
     }
     return {};
 }
@@ -72,6 +67,19 @@ std::optional<EtwProviderRegistry::ProviderInfo> EtwProviderRegistry::try_get_pr
 std::optional<EtwProviderRegistry::ProviderInfo> EtwProviderRegistry::try_get_provider_info_by_id(
     std::uint16_t id) const
 { return try_get_provider_info(id); }
+
+std::optional<EtwProviderRegistry::ProviderInfo> EtwProviderRegistry::try_get_provider_info_by_name(std::wstring_view name) const
+{
+    auto const  hash_to_find = std::hash<std::wstring_view>{}(name);
+    auto const *storage      = get_storage();
+    for (std::size_t pos = 0; pos < storage->NumberOfProviders; ++pos)
+    {
+        auto info = extract_info(storage->TraceProviderInfoArray[pos], static_cast<std::uint16_t>(pos));
+        if (std::hash<std::wstring_view>{}(info.name_) == hash_to_find)
+            return info;
+    }
+    return {};
+}
 
 _PROVIDER_ENUMERATION_INFO *EtwProviderRegistry::get_storage()
 {
@@ -84,6 +92,15 @@ _PROVIDER_ENUMERATION_INFO const *EtwProviderRegistry::get_storage() const
     return provider_storage_
                ? std::launder(reinterpret_cast<_PROVIDER_ENUMERATION_INFO const *>(provider_storage_.get()))
                : nullptr;
+}
+
+EtwProviderRegistry::ProviderInfo EtwProviderRegistry::extract_info(_TRACE_PROVIDER_INFO const &info, std::uint16_t id) const
+{
+    return ProviderInfo{
+        .name_ = std::wstring_view(reinterpret_cast<wchar_t *>(provider_storage_.get() + info.ProviderNameOffset)),
+        .guid_ = &info.ProviderGuid,
+        .id_   = id,
+    };
 }
 
 } // namespace aegis::sensor::win32::etw

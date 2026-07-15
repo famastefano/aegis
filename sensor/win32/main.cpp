@@ -2,7 +2,7 @@
 #include <etw/event_sinks/stdout_event_sink.h>
 #include <etw/provider_registry.h>
 
-#include <windows.h>
+#include <Windows.h>
 
 #include <atomic>
 #include <charconv>
@@ -37,10 +37,11 @@ BOOL WINAPI console_control_handler(DWORD control_type) noexcept
 
 struct ProgramOptions
 {
-    unsigned int  duration_seconds{10};
-    bool          show_help{false};
-    bool          show_providers{false};
-    std::uint16_t provider_id = USHRT_MAX;
+    unsigned int     duration_seconds{10};
+    bool             show_help{false};
+    bool             show_providers{false};
+    std::uint16_t    provider_id = USHRT_MAX;
+    std::string_view provider_name;
 };
 
 void print_usage(std::ostream &output)
@@ -51,6 +52,7 @@ void print_usage(std::ostream &output)
               "  --duration-seconds <seconds>  Runtime duration. Use 0 to run until Ctrl+C.\n"
               "  --show-providers              Prints all the available providers found in the registry.\n"
               "  --provider-id <id>            Enables the provider with ID <id>.\n"
+              "  --provider-name <name>        Enables the provider with name <name>.\n"
            << std::endl;
 }
 
@@ -98,6 +100,13 @@ template <typename TNumber>
 
             parse_number(options.provider_id, argv[++index], std::uint16_t(0), std::uint16_t(USHRT_MAX - 1));
         }
+        else if (arg == "--provider-name")
+        {
+            if (!has_next)
+                throw std::invalid_argument{"--provider-name requires a value"};
+
+            options.provider_name = argv[++index];
+        }
         else
         {
             throw std::invalid_argument{"unknown argument: " + std::string{arg}};
@@ -116,6 +125,7 @@ int main(int argc, char **argv)
     try
     {
         auto const options = parse_arguments(argc, argv);
+        auto options = parse_arguments(argc, argv);
         if (options.show_help)
         {
             print_usage(std::cout);
@@ -138,8 +148,20 @@ int main(int argc, char **argv)
 
         if (options.provider_id == USHRT_MAX)
         {
+            if (!options.provider_name.empty())
+            {
+                std::wstring wname(options.provider_name.begin(), options.provider_name.end());
+                if (auto const info = registry.try_get_provider_info_by_name(wname); info)
+                {
+                    options.provider_id = info->id_;
+                }
+            }
+
+            if (options.provider_id == USHRT_MAX)
+            {
             print_usage(std::cout);
             throw std::out_of_range("Invalid provider ID.");
+        }
         }
 
         SetConsoleCtrlHandler(&console_control_handler, TRUE);
