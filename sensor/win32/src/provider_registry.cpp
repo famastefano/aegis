@@ -40,7 +40,7 @@ std::size_t EtwProviderRegistry::discover_providers()
 std::size_t EtwProviderRegistry::get_providers_count() const
 {
     if (auto *storage = get_storage())
-        return storage->NumberOfProviders + 1ull;
+        return storage->NumberOfProviders;
     return 0;
 }
 
@@ -56,9 +56,9 @@ std::optional<EtwProviderRegistry::ProviderInfo> EtwProviderRegistry::try_get_pr
         };
     }
 
-    if (auto *storage = get_storage(); pos < storage->NumberOfProviders + 1)
+    if (auto *storage = get_storage(); pos < storage->NumberOfProviders)
     {
-        TRACE_PROVIDER_INFO const &provider = storage->TraceProviderInfoArray[pos - 1];
+        TRACE_PROVIDER_INFO const &provider = storage->TraceProviderInfoArray[pos];
         return extract_info(provider, static_cast<std::uint16_t>(pos));
     }
     return {};

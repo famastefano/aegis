@@ -15,7 +15,7 @@ class EtwProviderRegistry
   public:
     static EtwProviderRegistry &get_registry();
 
-    inline static constexpr std::uint16_t SELF_TEST_PROVIDER_ID = 0;
+    inline static constexpr std::uint16_t SELF_TEST_PROVIDER_ID = USHRT_MAX;
 
     [[maybe_unused]] std::size_t discover_providers();
 
