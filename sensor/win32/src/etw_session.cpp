@@ -1,6 +1,7 @@
+#include <etw/allocators/handle.h>
 #include <etw/etw_session.h>
-
 #include <etw/event_record_snapshot.h>
+#include <etw/event_sinks/etw_event_sink.h>
 
 #include <evntcons.h>
 
@@ -22,7 +23,7 @@ namespace
 
 } // namespace
 
-EtwSession::EtwSession(Config config, IRawEventSink &sink) : config_(std::move(config)), sink_(sink)
+EtwSession::EtwSession(Config config, IEtwEventSink &sink) : config_(std::move(config)), sink_(sink)
 {
 }
 

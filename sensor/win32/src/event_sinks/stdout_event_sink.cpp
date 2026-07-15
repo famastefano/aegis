@@ -1,4 +1,7 @@
-#include <etw/stdout_event_sink.h>
+#include <etw/allocators/event_record_allocator.h>
+#include <etw/allocators/handle.h>
+#include <etw/event_record_snapshot.h>
+#include <etw/event_sinks/stdout_event_sink.h>
 
 #include <iomanip>
 #include <iostream>
@@ -32,21 +35,23 @@ StdoutEventSink::StdoutEventSink(std::ostream &output) noexcept : output_(&outpu
 {
 }
 
-void StdoutEventSink::consume_event(snapshot_ptr_t &&event) noexcept
+void StdoutEventSink::consume_event(SnapshotHandle handle) noexcept
 {
     try
     {
+        auto           &ev = get_snapshot(handle);
         std::lock_guard lock{output_mutex_};
-        (*output_) << "provider=" << event->header.provider_id << " pid=" << event->header.process_id
-                   << " tid=" << event->header.thread_id
-                   << " level=" << static_cast<unsigned int>(event->header.ev_descriptor.Level)
-                   << " opcode=" << static_cast<unsigned int>(event->header.ev_descriptor.Opcode)
-                   << " event_id=" << event->header.ev_descriptor.Id
-                   << " version=" << static_cast<unsigned int>(event->header.ev_descriptor.Version) << '\n';
+        (*output_) << "provider=" << ev.header.provider_id << " pid=" << ev.header.process_id
+                   << " tid=" << ev.header.thread_id
+                   << " level=" << static_cast<unsigned int>(ev.header.ev_descriptor.Level)
+                   << " opcode=" << static_cast<unsigned int>(ev.header.ev_descriptor.Opcode)
+                   << " event_id=" << ev.header.ev_descriptor.Id
+                   << " version=" << static_cast<unsigned int>(ev.header.ev_descriptor.Version) << '\n';
     }
     catch (...)
     {
     }
+    delete_snapshot(handle);
 }
 
 } // namespace aegis::sensor::win32::etw

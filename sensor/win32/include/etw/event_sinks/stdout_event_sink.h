@@ -1,17 +1,17 @@
 #pragma once
 
-#include <etw/raw_event_sink.h>
+#include <etw/event_sinks/etw_event_sink.h>
 
 #include <iosfwd>
 #include <mutex>
 
 namespace aegis::sensor::win32::etw {
 
-class StdoutEventSink final : public IRawEventSink {
+class StdoutEventSink final : public IEtwEventSink {
 public:
     explicit StdoutEventSink(std::ostream& output) noexcept;
 
-    void consume_event(snapshot_ptr_t&& event) noexcept override;
+    void consume_event(SnapshotHandle handle) noexcept override;
 
 private:
     std::ostream* output_;

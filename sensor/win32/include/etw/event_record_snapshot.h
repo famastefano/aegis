@@ -1,6 +1,6 @@
 #pragma once
 
-#include <etw/etw_allocator.h>
+#include <etw/allocators/handle_fwd.h>
 #include <etw/events/extended_data.h>
 
 #include <memory>
@@ -42,8 +42,6 @@ struct EventRecordSnapshot
     std::uint16_t                    ext_data_size  = 0;
 };
 
-using snapshot_ptr_t = std::unique_ptr<EventRecordSnapshot, SnapshotDeleter>;
-
-[[nodiscard]] snapshot_ptr_t make_event_record_snapshot(const EVENT_RECORD &record) noexcept;
+[[nodiscard]] SnapshotHandle make_event_record_snapshot(const EVENT_RECORD &record) noexcept;
 
 } // namespace aegis::sensor::win32::etw
