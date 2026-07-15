@@ -1,3 +1,4 @@
+#include <aegis/debug/debug.h>
 #include <etw/etw_session.h>
 #include <etw/event_sinks/stdout_event_sink.h>
 #include <etw/provider_registry.h>
@@ -118,13 +119,33 @@ template <typename TNumber>
 [[nodiscard]] std::wstring make_session_name()
 { return L"AegisSensorWin32-" + std::to_wstring(GetCurrentProcessId()); }
 
+void wait_for_duration(ProgramOptions const &options)
+{
+    if (options.duration_seconds)
+    {
+        auto       now        = std::chrono::system_clock::now();
+        auto const final_time = now + std::chrono::seconds(options.duration_seconds);
+        while (!stop_requested.load() && now < final_time)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+            now = std::chrono::system_clock::now();
+        }
+    }
+    else
+    {
+        while (!stop_requested.load())
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    }
+}
+
 } // namespace
 
 int main(int argc, char **argv)
 {
     try
     {
-        auto const options = parse_arguments(argc, argv);
+        aegis::debug::assert(aegis::debug::is_admin());
+
         auto options = parse_arguments(argc, argv);
         if (options.show_help)
         {
@@ -159,9 +180,9 @@ int main(int argc, char **argv)
 
             if (options.provider_id == USHRT_MAX)
             {
-            print_usage(std::cout);
-            throw std::out_of_range("Invalid provider ID.");
-        }
+                print_usage(std::cout);
+                throw std::out_of_range("Invalid provider ID.");
+            }
         }
 
         SetConsoleCtrlHandler(&console_control_handler, TRUE);
@@ -176,8 +197,12 @@ int main(int argc, char **argv)
             sink,
         };
 
+        auto const now = std::chrono::system_clock::now();
         session.start();
+        wait_for_duration(options);
         session.stop();
+        auto const elapsed = std::chrono::system_clock::now() - now;
+        std::cout << "Ran for " << std::chrono::duration_cast<std::chrono::seconds>(elapsed) << std::endl;
         session.rethrow_consumer_error();
 
         SetConsoleCtrlHandler(&console_control_handler, FALSE);

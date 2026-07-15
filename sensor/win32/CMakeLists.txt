@@ -19,4 +19,7 @@ target_link_libraries(aegis_sensor_win32_core
 )
 
 add_executable(aegis_sensor_win32 main.cpp)
-target_link_libraries(aegis_sensor_win32 PRIVATE aegis_sensor_win32_core)
+target_link_libraries(aegis_sensor_win32 PRIVATE aegis_sensor_win32_core aegis::common)
+target_link_options(aegis_sensor_win32 PRIVATE
+    "/MANIFESTUAC:level='requireAdministrator' uiAccess='false'"
+)

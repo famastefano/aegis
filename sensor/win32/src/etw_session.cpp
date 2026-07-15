@@ -81,6 +81,8 @@ void EtwSession::stop() noexcept
             ControlTraceW(session_handle_, config_.session_name.c_str(),
                           reinterpret_cast<EVENT_TRACE_PROPERTIES *>(properties.data()), EVENT_TRACE_CONTROL_STOP);
         if (!is_stop_success(stop_status)) {}
+        if (consumer_thread_.joinable())
+            consumer_thread_.join();
         session_handle_ = 0;
     }
 }
@@ -207,7 +209,7 @@ std::vector<unsigned char> EtwSession::make_trace_properties(std::wstring const 
     properties->Wnode.BufferSize    = static_cast<ULONG>(buffer.size());
     properties->Wnode.Flags         = WNODE_FLAG_TRACED_GUID;
     properties->Wnode.ClientContext = 1;
-    properties->LogFileMode         = EVENT_TRACE_REAL_TIME_MODE;
+    properties->LogFileMode         = EVENT_TRACE_REAL_TIME_MODE | EVENT_TRACE_SYSTEM_LOGGER_MODE;
     properties->BufferSize          = 64;
     properties->MinimumBuffers      = 4;
     properties->MaximumBuffers      = 16;
