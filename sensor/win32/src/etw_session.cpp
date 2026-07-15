@@ -1,7 +1,7 @@
-#include <etw/allocators/handle.h>
 #include <etw/etw_session.h>
-#include <etw/event_record_snapshot.h>
 #include <etw/event_sinks/etw_event_sink.h>
+#include <etw/events/handle.h>
+#include <etw/events/snapshot_factory.h>
 #include <etw/provider_registry.h>
 
 #include <evntcons.h>
@@ -173,7 +173,7 @@ void EtwSession::handle_event(const EVENT_RECORD &record) noexcept
 {
     try
     {
-        sink_.consume_event(make_event_record_snapshot(record));
+        sink_.consume_event(make_snapshot(record));
     }
     catch (...)
     {

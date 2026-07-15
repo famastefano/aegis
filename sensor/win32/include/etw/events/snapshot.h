@@ -1,6 +1,5 @@
 #pragma once
 
-#include <etw/allocators/handle_fwd.h>
 #include <etw/events/extended_data.h>
 
 #include <memory>
@@ -33,7 +32,7 @@ struct EventHeader
 };
 
 // Packed EVENT_RECORD + RAII-safe deep copy of the data
-struct EventRecordSnapshot
+struct EventSnapshot
 {
     EventHeader                      header{};
     std::unique_ptr<unsigned char[]> user_data;
@@ -41,7 +40,5 @@ struct EventRecordSnapshot
     std::uint16_t                    user_data_size = 0;
     std::uint16_t                    ext_data_size  = 0;
 };
-
-[[nodiscard]] SnapshotHandle make_event_record_snapshot(const EVENT_RECORD &record) noexcept;
 
 } // namespace aegis::sensor::win32::etw

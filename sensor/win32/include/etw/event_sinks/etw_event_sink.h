@@ -1,6 +1,6 @@
 #pragma once
 
-#include <etw/allocators/handle_fwd.h>
+#include <etw/events/handle_fwd.h>
 
 namespace aegis::sensor::win32::etw {
 

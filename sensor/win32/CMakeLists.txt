@@ -1,11 +1,10 @@
 add_library(aegis_sensor_win32_core STATIC
-    src/events/extended_data.cpp
     src/etw_session.cpp
-    src/event_record_snapshot.cpp
     src/provider_registry.cpp
+    src/events/extended_data.cpp
+    src/events/snapshot_factory.cpp
     src/event_sinks/stdout_event_sink.cpp
     src/event_sinks/pool_event_sink.cpp
-    src/allocators/event_record_allocator.cpp
 )
 target_include_directories(aegis_sensor_win32_core PUBLIC include)
 target_link_libraries(aegis_sensor_win32_core

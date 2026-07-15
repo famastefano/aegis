@@ -58,7 +58,7 @@ snapshots and published a completed event block.
   lifecycle.
 - `EtwProviderRegistry` describes enabled providers, levels, keywords, filters,
   and optional adapter hooks.
-- `EventRecordSnapshot` owns data copied from `EVENT_RECORD` during the ETW
+- `EventSnapshot` owns data copied from `EVENT_RECORD` during the ETW
   callback.
 - `InMemoryEventQueue` owns a bounded fixed-size event-block pool and transfers
   block ownership through two Boost lock-free MPMC queues of block IDs.
@@ -76,7 +76,7 @@ snapshots and published a completed event block.
 ## In-Memory Event Queue
 
 The in-memory queue uses a fixed pool of event blocks. Each block stores a batch
-of `EventRecordSnapshot` instances and related block-owned storage. The queue
+of `EventSnapshot` instances and related block-owned storage. The queue
 does not move snapshots directly; it moves block IDs, which are indexes into the
 fixed block pool:
 

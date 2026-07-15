@@ -1,6 +1,7 @@
 #include <aegis/debug/debug.h>
 #include <etw/etw_session.h>
 #include <etw/event_sinks/stdout_event_sink.h>
+#include <etw/events/snapshot_factory.h>
 #include <etw/provider_registry.h>
 
 #include <Windows.h>
@@ -204,6 +205,8 @@ int main(int argc, char **argv)
         auto const elapsed = std::chrono::system_clock::now() - now;
         std::cout << "Ran for " << std::chrono::duration_cast<std::chrono::seconds>(elapsed) << std::endl;
         session.rethrow_consumer_error();
+
+        aegis::sensor::win32::etw::destroy_factory();
 
         SetConsoleCtrlHandler(&console_control_handler, FALSE);
         return 0;
